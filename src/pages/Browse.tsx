@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,8 @@ import { Search, Filter, MapPin, Star, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 const Browse = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,81 +17,87 @@ const Browse = () => {
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
-  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const categories = [
-    'All', 'Dresses', 'Jewellery', 'Footwear', 'Books', 'Kitchenware', 'Party Props'
-  ];
-
-  // Minimal example data - just 2 items
-  const exampleProducts = [
-    {
-      id: 1,
-      title: 'Designer Lehenga',
-      image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=400&h=400&fit=crop',
-      price: 250,
-      period: 'day',
-      location: '2.5 km away',
-      rating: 4.8,
-      reviews: 24,
-      category: 'dresses',
-      verified: true
-    },
-    {
-      id: 2,
-      title: 'Diamond Necklace Set',
-      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop',
-      price: 150,
-      period: 'day',
-      location: '1.2 km away',
-      rating: 4.9,
-      reviews: 18,
-      category: 'jewellery',
-      verified: true
-    }
-  ];
-
-  // Filter and search logic
-  useEffect(() => {
-    let filtered = exampleProducts.filter(product => {
-      const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
+  // Fetch categories
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
       
-      return matchesSearch && matchesCategory && matchesPrice;
-    });
+      if (error) throw error;
+      return data;
+    },
+  });
 
-    // Apply sorting
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'distance':
-        filtered.sort((a, b) => parseFloat(a.location) - parseFloat(b.location));
-        break;
-      default:
-        // Keep original order for relevance
-        break;
-    }
+  // Fetch items
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['items', searchQuery, selectedCategory, priceRange, sortBy],
+    queryFn: async () => {
+      let query = supabase
+        .from('items')
+        .select(`
+          *,
+          categories (name),
+          profiles (full_name)
+        `)
+        .eq('verification_status', 'verified')
+        .eq('is_available', true);
 
-    setFilteredProducts(filtered);
-  }, [searchQuery, selectedCategory, priceRange, sortBy]);
+      // Apply filters
+      if (searchQuery) {
+        query = query.ilike('title', `%${searchQuery}%`);
+      }
+      
+      if (selectedCategory !== 'all') {
+        query = query.eq('category_id', selectedCategory);
+      }
+      
+      query = query
+        .gte('price_per_day', priceRange[0])
+        .lte('price_per_day', priceRange[1]);
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'price-low':
+          query = query.order('price_per_day', { ascending: true });
+          break;
+        case 'price-high':
+          query = query.order('price_per_day', { ascending: false });
+          break;
+        case 'newest':
+          query = query.order('created_at', { ascending: false });
+          break;
+        default:
+          query = query.order('created_at', { ascending: false });
+          break;
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
     setPriceRange([0, 1000]);
     setSortBy('relevance');
+  };
+
+  const getImageUrl = (images: string[] | null) => {
+    if (images && images.length > 0) {
+      return images[0];
+    }
+    return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=400&fit=crop';
   };
 
   return (
@@ -143,7 +152,7 @@ const Browse = () => {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
-            {/* Sidebar Filters - Show/Hide based on showFilters state */}
+            {/* Sidebar Filters */}
             {showFilters && (
               <div className="lg:w-1/4">
                 <div className="bg-[#EDEDED] p-4 md:p-6 rounded-xl shadow-sm">
@@ -174,17 +183,28 @@ const Browse = () => {
                     <div>
                       <h4 className="font-medium text-[#181A2A] mb-3 font-poppins">Categories</h4>
                       <div className="space-y-2">
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="radio"
+                            name="category"
+                            value="all"
+                            checked={selectedCategory === 'all'}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            className="mr-3 text-[#F7996E] focus:ring-[#F7996E]"
+                          />
+                          <span className="text-gray-700 font-poppins text-sm">All</span>
+                        </label>
                         {categories.map((category) => (
-                          <label key={category} className="flex items-center cursor-pointer">
+                          <label key={category.id} className="flex items-center cursor-pointer">
                             <input
                               type="radio"
                               name="category"
-                              value={category.toLowerCase()}
-                              checked={selectedCategory === category.toLowerCase()}
+                              value={category.id}
+                              checked={selectedCategory === category.id}
                               onChange={(e) => setSelectedCategory(e.target.value)}
                               className="mr-3 text-[#F7996E] focus:ring-[#F7996E]"
                             />
-                            <span className="text-gray-700 font-poppins text-sm">{category}</span>
+                            <span className="text-gray-700 font-poppins text-sm">{category.name}</span>
                           </label>
                         ))}
                       </div>
@@ -219,7 +239,9 @@ const Browse = () => {
             {/* Product Grid */}
             <div className={`${showFilters ? 'lg:w-3/4' : 'w-full'}`}>
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <p className="text-gray-600 font-poppins">{filteredProducts.length} verified items found</p>
+                <p className="text-gray-600 font-poppins">
+                  {isLoading ? 'Loading...' : `${items.length} verified items found`}
+                </p>
                 <select 
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
@@ -228,54 +250,51 @@ const Browse = () => {
                   <option value="relevance">Sort by: Relevance</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Rating</option>
-                  <option value="distance">Distance</option>
+                  <option value="newest">Newest First</option>
                 </select>
               </div>
 
-              {filteredProducts.length > 0 ? (
+              {items.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                  {filteredProducts.map((product) => (
-                    <Link key={product.id} to={`/product/${product.id}`}>
+                  {items.map((item) => (
+                    <Link key={item.id} to={`/product/${item.id}`}>
                       <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer rounded-xl overflow-hidden border-0 shadow-lg">
                         <CardContent className="p-0">
                           <div className="relative overflow-hidden">
                             <img
-                              src={product.image}
-                              alt={product.title}
+                              src={getImageUrl(item.images)}
+                              alt={item.title}
                               className="w-full h-40 md:h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                             />
                             <Badge className="absolute top-3 right-3 bg-white text-[#181A2A] font-poppins font-medium text-xs">
-                              {product.category}
+                              {item.categories?.name}
                             </Badge>
-                            {product.verified && (
-                              <Badge className="absolute top-3 left-3 bg-green-500 text-white font-poppins font-medium text-xs">
-                                ✓ Verified
-                              </Badge>
-                            )}
+                            <Badge className="absolute top-3 left-3 bg-green-500 text-white font-poppins font-medium text-xs">
+                              ✓ Verified
+                            </Badge>
                           </div>
                           
                           <div className="p-4 md:p-6">
                             <h3 className="font-semibold text-[#181A2A] mb-2 group-hover:text-[#F7996E] transition-colors font-poppins text-base md:text-lg">
-                              {product.title}
+                              {item.title}
                             </h3>
                             
                             <div className="flex items-center justify-between mb-3">
                               <span className="text-xl md:text-2xl font-bold text-[#F7996E] font-poppins">
-                                ₹{product.price}
-                                <span className="text-sm font-normal text-gray-500">/{product.period}</span>
+                                ₹{item.price_per_day}
+                                <span className="text-sm font-normal text-gray-500">/day</span>
                               </span>
                               <div className="flex items-center">
                                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
                                 <span className="ml-1 text-sm text-gray-600 font-poppins">
-                                  {product.rating} ({product.reviews})
+                                  4.8 (24)
                                 </span>
                               </div>
                             </div>
                             
                             <div className="flex items-center text-sm text-gray-500">
                               <MapPin className="w-4 h-4 mr-1" />
-                              <span className="font-poppins">{product.location}</span>
+                              <span className="font-poppins">{item.location}</span>
                             </div>
                           </div>
                         </CardContent>
@@ -284,7 +303,6 @@ const Browse = () => {
                   ))}
                 </div>
               ) : (
-                // Empty State Message
                 <div className="text-center mt-12 py-12">
                   <div className="text-gray-400 mb-4">
                     <Search className="w-16 h-16 mx-auto mb-4" />

@@ -1,118 +1,163 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, User, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-lg border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 font-poppins">
+      <div className="max-w-7xl mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link to="/browse" className="text-2xl font-bold font-poppins">
-            <span className="text-[#181A2A]">CHERIL</span>
+          <Link to="/" className="flex items-center">
+            <h1 className="text-2xl md:text-3xl font-bold text-[#181A2A]">Cheril</h1>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link 
-              to="/browse" 
-              className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
-            >
+            <Link to="/browse" className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors">
               Browse
             </Link>
-            <Link 
-              to="/list-item" 
-              className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
-            >
-              List Item
-            </Link>
-            <Link 
-              to="/how-it-works" 
-              className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
-            >
+            <Link to="/how-it-works" className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors">
               How It Works
+            </Link>
+            <Link to="/list-item" className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors">
+              List Item
             </Link>
           </nav>
 
-          {/* Auth Buttons */}
+          {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/auth">
-              <Button 
-                variant="ghost" 
-                className="font-poppins text-[#181A2A] hover:text-[#F7996E] font-medium"
-              >
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/list-item">
-              <Button className="bg-[#F7996E] hover:bg-[#e8895f] text-white px-6 py-2 rounded-full font-medium font-poppins transition-all duration-300 hover:scale-105">
-                List Your Item
-              </Button>
-            </Link>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center space-x-2">
+                    <User className="w-4 h-4" />
+                    <span>{user.user_metadata?.full_name || user.email}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/auth">
+                  <Button variant="ghost" className="text-gray-700 hover:text-[#F7996E]">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/auth">
+                  <Button className="bg-[#F7996E] hover:bg-[#e8895f] text-white px-6">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-[#181A2A]"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 text-gray-700 hover:text-[#F7996E]"
           >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
         {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-gray-200">
-            <nav className="flex flex-col space-y-4 mt-4">
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            <nav className="flex flex-col space-y-4">
               <Link 
                 to="/browse" 
-                className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
-                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Browse
               </Link>
               <Link 
-                to="/list-item" 
-                className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                List Item
-              </Link>
-              <Link 
                 to="/how-it-works" 
-                className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
-                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors"
+                onClick={() => setIsMenuOpen(false)}
               >
                 How It Works
               </Link>
-              <div className="flex flex-col space-y-2 pt-4">
-                <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full font-poppins text-[#181A2A] hover:text-[#F7996E] font-medium"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/list-item" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full bg-[#F7996E] hover:bg-[#e8895f] text-white rounded-full font-medium font-poppins">
-                    List Your Item
-                  </Button>
-                </Link>
+              <Link 
+                to="/list-item" 
+                className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                List Item
+              </Link>
+              
+              <div className="pt-4 border-t border-gray-200">
+                {user ? (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600">
+                      {user.user_metadata?.full_name || user.email}
+                    </p>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-left"
+                      onClick={() => {
+                        navigate('/profile');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Profile
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-left text-red-600 hover:text-red-700"
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full text-gray-700 hover:text-[#F7996E]">
+                        Sign In
+                      </Button>
+                    </Link>
+                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                      <Button className="w-full bg-[#F7996E] hover:bg-[#e8895f] text-white">
+                        Sign Up
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </nav>
           </div>
