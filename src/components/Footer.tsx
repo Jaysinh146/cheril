@@ -1,0 +1,76 @@
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const Footer = () => {
+  return (
+    <footer className="py-12 px-6 bg-[#181A2A] text-white">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="col-span-1 md:col-span-2">
+            <h3 className="text-2xl font-bold mb-4">CHERIL</h3>
+            <p className="text-white/80 mb-4 max-w-md">
+              Rent What You Need. Earn From What You Don't.
+            </p>
+            <p className="text-white/60 text-sm">
+              Making fashion and lifestyle accessible to everyone while promoting sustainable living.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <ul className="space-y-2">
+              <li><Link to="/browse" className="text-white/80 hover:text-[#F7996E] transition-colors">Browse</Link></li>
+              <li><Link to="/list-item" className="text-white/80 hover:text-[#F7996E] transition-colors">List Item</Link></li>
+              <li><Link to="/how-it-works" className="text-white/80 hover:text-[#F7996E] transition-colors">How It Works</Link></li>
+              <li><Link to="/waitlist" className="text-white/80 hover:text-[#F7996E] transition-colors">Join Waitlist</Link></li>
+            </ul>
+          </div>
+
+          {/* Support */}
+          <div>
+            <h4 className="font-semibold mb-4">Support</h4>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Help Center</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Contact Us</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-white/20 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-white/60 text-sm">
+            © 2024 Cheril. All rights reserved.
+          </p>
+          <div className="flex space-x-6 mt-4 md:mt-0">
+            <a href="#" className="text-white/60 hover:text-[#F7996E] transition-colors">
+              <span className="sr-only">Facebook</span>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M20 10C20 4.477 15.523 0 10 0S0 4.477 0 10c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V10h2.54V7.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V10h2.773l-.443 2.89h-2.33v6.988C16.343 19.128 20 14.991 20 10z" clipRule="evenodd" />
+              </svg>
+            </a>
+            <a href="#" className="text-white/60 hover:text-[#F7996E] transition-colors">
+              <span className="sr-only">Instagram</span>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 2c2.2 0 2.467.01 3.335.048.826.038 1.269.175 1.566.292.394.152.675.336.97.63.295.295.478.576.63.97.117.297.254.74.292 1.566.038.868.048 1.135.048 3.335s-.01 2.467-.048 3.335c-.038.826-.175 1.269-.292 1.566a2.612 2.612 0 01-.63.97c-.295.295-.576.478-.97.63-.297.117-.74.254-1.566.292-.868.038-1.135.048-3.335.048s-2.467-.01-3.335-.048c-.826-.038-1.269-.175-1.566-.292a2.612 2.612 0 01-.97-.63 2.612 2.612 0 01-.63-.97c-.117-.297-.254-.74-.292-1.566C2.01 12.467 2 12.2 2 10s.01-2.467.048-3.335c.038-.826.175-1.269.292-1.566.152-.394.336-.675.63-.97.295-.295.576-.478.97-.63.297-.117.74-.254 1.566-.292C7.533 2.01 7.8 2 10 2zm0-2C7.556 0 7.249.01 6.289.048 5.332.087 4.677.222 4.105.42A4.612 4.612 0 002.46 2.46 4.612 4.612 0 00.42 4.105C.222 4.677.087 5.332.048 6.29.01 7.249 0 7.556 0 10s.01 2.751.048 3.71c.039.958.174 1.613.372 2.185a4.612 4.612 0 002.04 2.04c.572.198 1.227.333 2.185.372.959.038 1.266.048 3.71.048s2.751-.01 3.71-.048c.958-.039 1.613-.174 2.185-.372a4.612 4.612 0 002.04-2.04c.198-.572.333-1.227.372-2.185.038-.959.048-1.266.048-3.71s-.01-2.751-.048-3.71c-.039-.958-.174-1.613-.372-2.185A4.612 4.612 0 0017.54 2.46 4.612 4.612 0 0015.895.42C15.323.222 14.668.087 13.71.048 12.751.01 12.444 0 10 0z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M10 4.865A5.135 5.135 0 104.865 10 5.135 5.135 0 0010 4.865zm0 8.468A3.333 3.333 0 1113.333 10 3.333 3.333 0 0110 13.333z" clipRule="evenodd" />
+                <circle cx="15.338" cy="4.662" r="1.2" />
+              </svg>
+            </a>
+            <a href="#" className="text-white/60 hover:text-[#F7996E] transition-colors">
+              <span className="sr-only">Twitter</span>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M6.29 18.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0020 3.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.073 4.073 0 01.8 7.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 010 16.407a11.616 11.616 0 006.29 1.84" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
