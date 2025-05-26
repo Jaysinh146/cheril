@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Browse from "./pages/Browse";
 import Product from "./pages/Product";
 import ListItem from "./pages/ListItem";
+import HowItWorks from "./pages/HowItWorks";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/browse" element={<Browse />} />
           <Route path="/product/:id" element={<Product />} />
           <Route path="/list-item" element={<ListItem />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

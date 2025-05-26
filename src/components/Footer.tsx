@@ -9,41 +9,41 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="col-span-1 md:col-span-2">
-            <h3 className="text-2xl font-bold mb-4">CHERIL</h3>
-            <p className="text-white/80 mb-4 max-w-md">
-              Rent What You Need. Earn From What You Don't.
+            <h3 className="text-2xl font-bold mb-4 font-poppins">CHERIL</h3>
+            <p className="text-white/80 mb-4 max-w-md font-poppins">
+              Verified rentals only. Rent What You Need. Earn From What You Don't.
             </p>
-            <p className="text-white/60 text-sm">
-              Making fashion and lifestyle accessible to everyone while promoting sustainable living.
+            <p className="text-white/60 text-sm font-poppins">
+              Making fashion and lifestyle accessible to everyone while promoting sustainable living through trusted community rentals.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold mb-4">Quick Links</h4>
+            <h4 className="font-semibold mb-4 font-poppins">Quick Links</h4>
             <ul className="space-y-2">
-              <li><Link to="/browse" className="text-white/80 hover:text-[#F7996E] transition-colors">Browse</Link></li>
-              <li><Link to="/list-item" className="text-white/80 hover:text-[#F7996E] transition-colors">List Item</Link></li>
-              <li><Link to="/how-it-works" className="text-white/80 hover:text-[#F7996E] transition-colors">How It Works</Link></li>
-              <li><Link to="/waitlist" className="text-white/80 hover:text-[#F7996E] transition-colors">Join Waitlist</Link></li>
+              <li><Link to="/browse" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Browse</Link></li>
+              <li><Link to="/list-item" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">List Item</Link></li>
+              <li><Link to="/how-it-works" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">How It Works</Link></li>
+              <li><Link to="/auth" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Sign In</Link></li>
             </ul>
           </div>
 
           {/* Support */}
           <div>
-            <h4 className="font-semibold mb-4">Support</h4>
+            <h4 className="font-semibold mb-4 font-poppins">Support</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Help Center</a></li>
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors">Contact Us</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Help Center</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Privacy Policy</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Terms of Service</a></li>
+              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Contact Us</a></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-white/20 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-white/60 text-sm">
-            © 2024 Cheril. All rights reserved.
+          <p className="text-white/60 text-sm font-poppins">
+            © 2025 Cheril. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="text-white/60 hover:text-[#F7996E] transition-colors">

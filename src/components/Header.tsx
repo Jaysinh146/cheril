@@ -40,12 +40,12 @@ const Header = () => {
             >
               List Item
             </Link>
-            <a 
-              href="#how-it-works" 
+            <Link 
+              to="/how-it-works" 
               className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
             >
               How It Works
-            </a>
+            </Link>
           </nav>
 
           {/* Auth Buttons */}
@@ -92,13 +92,13 @@ const Header = () => {
               >
                 List Item
               </Link>
-              <a 
-                href="#how-it-works" 
+              <Link 
+                to="/how-it-works" 
                 className="font-medium font-poppins text-[#181A2A] hover:text-[#F7996E] transition-colors duration-300"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 How It Works
-              </a>
+              </Link>
               <div className="flex flex-col space-y-2 pt-4">
                 <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button 
