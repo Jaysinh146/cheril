@@ -1,13 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, MapPin, Check } from 'lucide-react';
+import { MapPin, Check, Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import ImageUploader from '@/components/ImageUploader';
+import { v4 as uuidv4 } from 'uuid';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FormData {
   title: string;
@@ -20,10 +26,20 @@ interface FormData {
   location: string;
   availableFrom: string;
   availableTo: string;
+  images: string[];
 }
 
 const ListItemSteps = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // Generate a temporary item ID for organizing uploads
+  const [tempItemId] = useState(() => uuidv4());
+  
   const [formData, setFormData] = useState<FormData>({
     title: '',
     category: '',
@@ -34,9 +50,9 @@ const ListItemSteps = () => {
     securityDeposit: '',
     location: '',
     availableFrom: '',
-    availableTo: ''
+    availableTo: '',
+    images: []
   });
-  const [images, setImages] = useState<File[]>([]);
 
   const steps = [
     { title: 'Basic Info', description: 'Tell us about your item' },
@@ -46,9 +62,41 @@ const ListItemSteps = () => {
     { title: 'Review', description: 'Review and publish' }
   ];
 
-  const categories = [
-    'Dresses', 'Jewellery', 'Footwear', 'Books', 'Kitchenware', 'Party Props', 'Electronics', 'Accessories'
-  ];
+  const [categories, setCategories] = useState<Array<{id: string, name: string}>>([]);
+  
+  // Fetch categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setCategories(data);
+        } else {
+          // Fallback to default categories if none exist in database
+          setCategories([
+            { id: 'dresses', name: 'Dresses' },
+            { id: 'jewellery', name: 'Jewellery' },
+            { id: 'footwear', name: 'Footwear' },
+            { id: 'books', name: 'Books' },
+            { id: 'kitchenware', name: 'Kitchenware' },
+            { id: 'party_props', name: 'Party Props' },
+            { id: 'electronics', name: 'Electronics' },
+            { id: 'accessories', name: 'Accessories' }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
 
   const conditions = [
     'Brand New', 'Excellent', 'Very Good', 'Good', 'Fair'
@@ -68,15 +116,121 @@ const ListItemSteps = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setImages([...images, ...Array.from(e.target.files)]);
-    }
+  // Handle images uploaded through the ImageUploader component
+  const handleImagesUploaded = (urls: string[]) => {
+    setFormData(prev => ({
+      ...prev,
+      images: [...prev.images, ...urls]
+    }));
+  };
+  
+  // Handle removal of an existing image
+  const handleImageRemove = (url: string) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter(imageUrl => imageUrl !== url)
+    }));
   };
 
-  const handleSubmit = () => {
-    console.log('Form submitted:', formData);
-    // Handle form submission logic here
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'You need to be logged in to list an item',
+        variant: 'destructive',
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (!formData.title || !formData.category || !formData.dailyPrice || !formData.location) {
+      toast({
+        title: 'Missing information',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (formData.images.length === 0) {
+      toast({
+        title: 'Images required',
+        description: 'Please upload at least one image of your item.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setUploadProgress(0);
+      
+      // Simulate progress for database operation
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = prev + 10;
+          return newProgress > 90 ? 90 : newProgress;
+        });
+      }, 300);
+      
+      // Insert the item data into the database with the already uploaded images
+      // Ensure we have a valid category ID
+      let categoryId = formData.category;
+      
+      // If we can't find the category, use the first one as fallback
+      if (!categories.some(cat => cat.id === categoryId) && categories.length > 0) {
+        categoryId = categories[0].id;
+      }
+      
+      console.log('Creating item with the following data:', {
+        owner_id: user.id,
+        title: formData.title,
+        category_id: categoryId,
+        description: formData.description,
+        price_per_day: parseFloat(formData.dailyPrice) || 0,
+        location: formData.location,
+        images: formData.images
+      });
+      
+      const { error, data } = await supabase.from('items').insert({
+        owner_id: user.id,
+        title: formData.title,
+        category_id: categoryId,
+        description: formData.description,
+        price_per_day: parseFloat(formData.dailyPrice) || 0,
+        location: formData.location,
+        images: formData.images,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_available: true,
+        verification_status: 'pending'
+      }).select('id').single();
+      
+      if (error) throw error;
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      toast({
+        title: 'Success!',
+        description: 'Your item has been published successfully.',
+      });
+      
+      // Redirect to the browse page to see the newly listed item
+      setTimeout(() => {
+        navigate('/browse');
+      }, 1000);
+      
+    } catch (error: any) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to publish your item. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -102,14 +256,18 @@ const ListItemSteps = () => {
               <Label htmlFor="category" className="text-sm font-medium text-gray-700 mb-2 block font-poppins">
                 Category *
               </Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+              <Select 
+                value={formData.category} 
+                onValueChange={(value) => setFormData({...formData, category: value})}
+                disabled={categories.length === 0}
+              >
                 <SelectTrigger className="border-gray-300 focus:border-[#F7996E] font-poppins">
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder={categories.length === 0 ? "Loading categories..." : "Select a category"} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category} value={category.toLowerCase()}>
-                      {category}
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -153,33 +311,38 @@ const ListItemSteps = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-[#F7996E] transition-colors">
-              <input
-                type="file"
-                id="images"
-                multiple
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-800 mb-2 font-poppins">Item Photos</h3>
+              <p className="text-sm text-gray-600 font-poppins mb-4">
+                Upload clear, high-quality photos of your item. Multiple angles and details help potential renters.
+              </p>
+              
+              {/* Use our new ImageUploader component */}
+              <ImageUploader
+                userId={user?.id || ''}
+                itemId={tempItemId}
+                onUploadComplete={handleImagesUploaded}
+                existingImages={formData.images}
+                onExistingImageDelete={handleImageRemove}
               />
-              <label htmlFor="images" className="cursor-pointer">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-700 mb-2 font-poppins">Upload Photos</p>
-                <p className="text-sm text-gray-500 font-poppins">Drag and drop or click to select images</p>
-              </label>
             </div>
             
-            {images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {images.map((image, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={URL.createObjectURL(image)}
-                      alt={`Upload ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                  </div>
-                ))}
+            {formData.images.length > 0 && (
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm text-green-700 font-poppins flex items-center">
+                  <Check className="w-4 h-4 mr-2 text-green-600" />
+                  {formData.images.length} {formData.images.length === 1 ? 'image' : 'images'} uploaded successfully
+                </p>
+              </div>
+            )}
+            
+            {isSubmitting && (
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Processing...</span>
+                  <span className="text-sm text-gray-500">{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
               </div>
             )}
           </div>
@@ -302,7 +465,7 @@ const ListItemSteps = () => {
                 <p><strong>Category:</strong> {formData.category || 'Not selected'}</p>
                 <p><strong>Daily Price:</strong> ₹{formData.dailyPrice || '0'}</p>
                 <p><strong>Location:</strong> {formData.location || 'Not provided'}</p>
-                <p><strong>Photos:</strong> {images.length} uploaded</p>
+                <p><strong>Photos:</strong> {formData.images.length} uploaded</p>
               </div>
             </div>
             <p className="text-sm text-gray-500 font-poppins">
@@ -379,8 +542,9 @@ const ListItemSteps = () => {
           <Button
             onClick={handleSubmit}
             className="bg-[#F7996E] hover:bg-[#e8895f] text-white px-8 py-3 font-poppins"
+            disabled={isSubmitting}
           >
-            Publish Listing
+            {isSubmitting ? 'Publishing...' : 'Publish Listing'}
           </Button>
         ) : (
           <Button

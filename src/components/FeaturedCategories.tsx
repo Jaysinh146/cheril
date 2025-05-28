@@ -7,7 +7,7 @@ const categories = [
   {
     id: 1,
     name: 'Dresses',
-    image: 'https://images.unsplash.com/photo-1566479179817-c0df6e5d5f3c?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=400&h=300&fit=crop',
     count: '150+ items'
   },
   {
@@ -44,7 +44,7 @@ const categories = [
 
 const FeaturedCategories = () => {
   return (
-    <section className="py-16 px-6 bg-[#EDEDED]">
+    <section className="py-16 px-6 bg-gradient-to-b from-white to-[#ffebe3]">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-[#181A2A] mb-4">

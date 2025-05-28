@@ -8,7 +8,7 @@ const testimonials = [
     location: 'Mumbai',
     rating: 5,
     text: 'I rented a designer lehenga for my sister\'s wedding and saved ₹15,000! The quality was amazing and the process was so smooth.',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b5e4?w=100&h=100&fit=crop&crop=face'
+    avatar: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=100&h=100&fit=crop&crop=face'
   },
   {
     name: 'Rahul Gupta',
@@ -28,7 +28,7 @@ const testimonials = [
 
 const Testimonials = () => {
   return (
-    <section className="py-16 px-6 bg-white">
+    <section className="py-16 px-6 bg-gradient-to-b from-white to-[#ffebe3]">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-[#181A2A] mb-4">

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -33,18 +32,31 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4 font-poppins">Support</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Help Center</a></li>
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Privacy Policy</a></li>
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Terms of Service</a></li>
-              <li><a href="#" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Contact Us</a></li>
+              <li><Link to="/help-center" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Help Center</Link></li>
+              <li><Link to="/privacy-policy" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Privacy Policy</Link></li>
+              <li><Link to="/terms-of-service" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Terms of Service</Link></li>
+              <li><a href="mailto:support@cheril.com" className="text-white/80 hover:text-[#F7996E] transition-colors font-poppins">Contact Us</a></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-white/20 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-white/60 text-sm font-poppins">
-            © 2025 Cheril. All rights reserved.
-          </p>
+          <div className="flex flex-col space-y-1">
+            <p className="text-white/60 text-sm font-poppins">
+              © 2025 Cheril. All rights reserved.
+            </p>
+            <p className="text-white/60 text-xs font-poppins">
+              Created by{' '}
+              <a 
+                href="https://www.hilwitz.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#F7996E] hover:underline"
+              >
+                hilwitz
+              </a>
+            </p>
+          </div>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <a href="#" className="text-white/60 hover:text-[#F7996E] transition-colors">
               <span className="sr-only">Facebook</span>

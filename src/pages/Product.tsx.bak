@@ -1,0 +1,795 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Star, MapPin, Shield, Heart, ArrowLeft, Share, Check, Phone, MessageSquare, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import ReviewForm from '@/components/ReviewForm';
+import ReviewList from '@/components/ReviewList';
+import { Link } from 'react-router-dom';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Database } from '@/lib/database.types';
+
+// Define extended Item type to include optional fields
+type ExtendedItem = {
+  category_id: string;
+  created_at: string;
+  description: string;
+  id: string;
+  images: string[];
+  is_available: boolean;
+  location: string;
+  owner_id: string;
+  price_per_day: number;
+  title: string;
+  updated_at: string;
+  verification_status: string;
+  condition?: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  dimensions?: string;
+  security_deposit?: number;
+  categories: {
+    id: string;
+    name: string;
+  };
+  profiles: {
+    id: string;
+    username: string;
+    avatar_url: string;
+    bio: string;
+    location: string;
+    website: string;
+    created_at: string;
+    updated_at: string;
+    whatsapp_number?: string;
+  };
+};
+
+// Type for RPC response
+type AverageRatingResponse = {
+  average_rating: number;
+  count: number;
+};
+
+const Product = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [activeImage, setActiveImage] = useState<string>('');
+  const [refreshReviews, setRefreshReviews] = useState<number>(0);
+  const [rentalDays, setRentalDays] = useState<number>(1);
+  const [isItemSaved, setIsItemSaved] = useState<boolean>(false);
+
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Check if item is in wishlist
+  const { data: wishlistData } = useQuery({
+    queryKey: ['wishlist-check', id, user?.id],
+    queryFn: async () => {
+      if (!user || !id) return null;
+
+      const { data, error } = await supabase
+        .from('wishlists' as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('item_id', id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 is the error code for no rows returned
+        console.error('Error checking wishlist:', error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!id && !!user,
+  });
+
+  // Update isItemSaved state when wishlistData changes
+  useEffect(() => {
+    setIsItemSaved(!!wishlistData);
+  }, [wishlistData]);
+
+  // Save to wishlist mutation
+  const saveToWishlist = useMutation({
+    mutationFn: async () => {
+      if (!user || !id) throw new Error('User not authenticated or invalid item');
+
+      if (isItemSaved) {
+        // Remove from wishlist
+        const { error } = await supabase
+          .from('wishlists' as any)
+          .delete()
+          .eq('user_id', user.id)
+          .eq('item_id', id);
+
+        if (error) throw error;
+        return { added: false };
+      } else {
+        // Add to wishlist
+        const { error } = await supabase
+          .from('wishlists' as any)
+          .insert({
+            user_id: user.id,
+            item_id: id
+          });
+
+        if (error) throw error;
+        return { added: true };
+      }
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch wishlist data
+      queryClient.invalidateQueries({ queryKey: ['wishlist-check', id, user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['wishlist', user?.id] });
+      
+      setIsItemSaved(data.added);
+      
+      toast({
+        title: data.added ? 'Item saved' : 'Item removed',
+        description: data.added 
+          ? 'Item has been added to your wishlist' 
+          : 'Item has been removed from your wishlist',
+        variant: 'default',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to update wishlist: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Calculate total cost
+  const calculateTotalCost = (days: number, pricePerDay: number, deposit: number = 0): number => {
+    return (days * pricePerDay) + deposit;
+  };
+
+  // Generate WhatsApp message
+  const generateWhatsAppMessage = (item: any): string => {
+    if (!item) return '';
+    
+    const totalCost = calculateTotalCost(rentalDays, item.price_per_day, item.security_deposit || 0);
+    
+    return encodeURIComponent(
+      `Hi! I'm interested in renting your item "${item.title}" for ${rentalDays} day${rentalDays > 1 ? 's' : ''}. ` +
+      `Total cost would be $${totalCost.toFixed(2)} ($${item.price_per_day}/day + $${item.security_deposit || 0} deposit). ` +
+      `Is it available? Item link: ${window.location.href}`
+    );
+  };
+
+  // Helper function to get Supabase storage image URLs
+  const getImageUrl = (path: string | null): string => {
+    // Return placeholder for empty paths
+    if (!path) return 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+    
+    // If it's already a full URL, return it
+    if (path.startsWith('http')) {
+      return path;
+    }
+
+    try {
+      // Check if path is valid
+      if (typeof path !== 'string' || path.trim() === '') {
+        return 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+      }
+
+      // Otherwise, generate the URL from Supabase storage
+      const { data } = supabase.storage
+        .from('item-images')
+        .getPublicUrl(path);
+
+      return data?.publicUrl || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+    } catch (error) {
+      console.error('Error getting image URL:', error);
+      return 'https://placehold.co/600x400/e2e8f0/64748b?text=Error+Loading+Image';
+    }
+  };
+
+  // Fetch product details
+  const { data: product, isLoading: isProductLoading, error: productError, isError } = useQuery<ExtendedItem>({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Product ID is required');
+
+      // Get item data with category and owner profile details
+      const { data, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          categories (*),
+          profiles:owner_id (*)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('Product not found');
+
+      // Set the active image to the first image when data is loaded
+      if (data.images && data.images.length > 0) {
+        setActiveImage(getImageUrl(data.images[0]));
+      }
+
+      // Cast to ExtendedItem with all required fields
+      return data as unknown as ExtendedItem;
+    },
+    enabled: !!id
+  });
+
+  // Fetch average rating and review count
+  const { data: ratingData } = useQuery({
+    queryKey: ['averageRating', id, refreshReviews],
+    queryFn: async () => {
+      if (!id) return { average_rating: 0, count: 0 };
+
+      try {
+        // Get average rating
+        const { data: avgData, error: avgError } = await supabase
+          .rpc('calculate_average_rating' as any, { item_id: id });
+
+        // Get review count
+        const { count, error: countError } = await supabase
+          .from('reviews' as any)
+          .select('id', { count: 'exact' })
+          .eq('item_id', id);
+
+        if (avgError || !avgData) {
+          console.error('Error fetching average rating:', avgError);
+          return { average_rating: 0, count: count || 0 };
+        }
+
+        if (countError) {
+          console.error('Error fetching review count:', countError);
+          return { average_rating: (avgData as any).average_rating || 0, count: 0 };
+        }
+
+        // Return both values
+        return { 
+          average_rating: (avgData as any).average_rating || 0, 
+          count: count || 0 
+        };
+      } catch (error) {
+        console.error('Unexpected error in rating calculation:', error);
+        return { average_rating: 0, count: 0 };
+      }
+    },
+    enabled: !!id
+  });
+  
+  // Extract rating data
+  const averageRating = ratingData?.average_rating || 0;
+  const reviewCount = ratingData?.count || 0;
+
+  // Similar items
+  const { data: relatedProducts = [], isLoading: isRelatedLoading } = useQuery({
+    queryKey: ['relatedProducts', product?.category_id],
+    queryFn: async () => {
+      if (!product?.category_id || !id) return [] as ExtendedItem[];
+
+      const { data: similarItems, error } = await supabase
+        .from('items')
+        .select(`
+          *,
+          categories (*),
+          profiles:owner_id (*)
+        `)
+        .eq('category_id', product.category_id)
+        .neq('id', id)
+        .limit(4);
+
+      if (error) {
+        console.error('Error fetching related products:', error);
+        return [] as ExtendedItem[];
+      }
+
+      return (similarItems || []) as unknown as ExtendedItem[];
+    },
+    enabled: !!product?.category_id && !!id
+  });
+    },
+    enabled: !!product?.category_id && !!id
+  });
+
+  // Contact the owner
+  const handleContactOwner = () => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to contact the owner',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // This would normally open a chat or messaging feature
+    toast({
+      title: 'Contact initiated',
+      description: `You've contacted the owner about "${product?.title}"`,
+    });
+  };
+  
+  // Handle review submission
+  const handleReviewSubmitted = () => {
+    setRefreshReviews(prev => prev + 1);
+  };
+
+  // Render rating stars
+  const renderRatingStars = (rating: number) => {
+    return Array.from({ length: 5 }).map((_, index) => (
+      <Star 
+        key={index}
+        className={`h-5 w-5 ${
+          index < rating 
+            ? 'text-yellow-400 fill-current' 
+            : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  // Loading state
+  if (isProductLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Header />
+        <div className="animate-pulse">
+          <div className="h-8 w-1/3 bg-gray-200 rounded mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="bg-gray-200 h-[400px] rounded-lg"></div>
+            <div className="space-y-4">
+              <div className="h-8 w-3/4 bg-gray-200 rounded"></div>
+              <div className="h-6 w-1/3 bg-gray-200 rounded"></div>
+              <div className="h-20 w-full bg-gray-200 rounded"></div>
+              <div className="h-10 w-1/2 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (productError || !product) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <Header />
+        <div className="my-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
+          <p className="text-gray-600 mb-6">The product you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/browse')} className="bg-[#F7996E] hover:bg-[#e8895f] text-white">
+            Browse Other Items
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#ffebe3] to-white">
+      <Header />
+
+      <div className="container mx-auto px-4 py-8 mt-6">
+        {/* Breadcrumb */}
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center text-gray-600 hover:text-[#F7996E]"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
+          <span className="mx-2 text-gray-400">/</span>
+          <Link to="/browse" className="text-gray-600 hover:text-[#F7996E]">
+            Browse
+          </Link>
+          <span className="mx-2 text-gray-400">/</span>
+          <Link to={`/browse?category=${product.categories.id}`} className="text-gray-600 hover:text-[#F7996E]">
+            {product.categories.name}
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-12">
+          {/* Product Images */}
+          <div className="max-w-md mx-auto lg:mx-0">
+            <div className="mb-4">
+              <div className="rounded-lg overflow-hidden bg-gray-50 aspect-square max-h-[400px] border border-gray-200">
+                {activeImage ? (
+                  <img 
+                    src={activeImage} 
+                    alt={product.title} 
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null;
+                      target.src = 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <p className="text-gray-400">No image available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Thumbnail Images */}
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-5 gap-2 max-w-md mx-auto lg:mx-0">
+                {product.images.map((image, index) => (
+                  <div 
+                    key={index}
+                    className={`aspect-square rounded-md overflow-hidden cursor-pointer border-2 h-16 w-16 ${activeImage === getImageUrl(image) ? 'border-[#F7996E]' : 'border-gray-200'}`}
+                    onClick={() => setActiveImage(getImageUrl(image))}
+                  >
+                    <img 
+                      src={getImageUrl(image)} 
+                      alt={`${product.title} thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div>
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold text-[#181A2A] mb-2">{product.title}</h1>
+              
+              <div className="flex items-center mb-4">
+                <div className="flex items-center">
+                  {renderRatingStars(Math.round(averageRating))}
+                </div>
+                <span className="ml-2 text-gray-600">
+                  {averageRating > 0 ? `${averageRating.toFixed(1)} stars` : 'No ratings yet'} 
+                  {reviewCount > 0 && ` (${reviewCount} ${reviewCount === 1 ? 'review' : 'reviews'})`}
+                </span>
+              </div>
+
+              <div className="flex items-center text-gray-600 mb-4">
+                <MapPin className="w-4 h-4 mr-1" />
+                <span>{product.location}</span>
+              </div>
+
+              <div className="text-2xl font-bold text-[#F7996E] mb-6">
+                ${product.price_per_day} <span className="text-sm font-normal text-gray-600">per day</span>
+                {product.security_deposit && (
+                  <span className="block text-sm font-normal text-gray-600 mt-1">
+                    Security deposit: ${product.security_deposit}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Product Specifications */}
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">Specifications</h3>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                {product.condition && (
+                  <div className="flex justify-between sm:block">
+                    <dt className="text-gray-500">Condition</dt>
+                    <dd>{product.condition}</dd>
+                  </div>
+                )}
+                {product.brand && (
+                  <div className="flex justify-between sm:block">
+                    <dt className="text-gray-500">Brand</dt>
+                    <dd>{product.brand}</dd>
+                  </div>
+                )}
+                {product.model && (
+                  <div className="flex justify-between sm:block">
+                    <dt className="text-gray-500">Model</dt>
+                    <dd>{product.model}</dd>
+                  </div>
+                )}
+                {product.year && (
+                  <div className="flex justify-between sm:block">
+                    <dt className="text-gray-500">Year</dt>
+                    <dd>{product.year}</dd>
+                  </div>
+                )}
+                {product.dimensions && (
+                  <div className="flex justify-between sm:block">
+                    <dt className="text-gray-500">Dimensions</dt>
+                    <dd>{product.dimensions}</dd>
+                  </div>
+                )}
+                {product.color && (
+                  <div className="flex justify-between sm:block">
+                    <dt className="text-gray-500">Color</dt>
+                    <dd>{product.color}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+
+            {/* Description */}
+            <div className="mb-6">
+              <h3 className="font-semibold mb-2">Description</h3>
+              <p className="text-gray-700 whitespace-pre-line">{product?.description ?? ''}</p>
+            </div>
+
+            {/* Rental Details */}
+            <div className="mb-6 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-3">Rental Details</h3>
+              
+              <div className="mb-4">
+                <Label htmlFor="rental-days">Number of Days</Label>
+                <div className="flex items-center mt-1">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setRentalDays(prev => Math.max(1, prev - 1))}
+                    disabled={rentalDays <= 1}
+                  >
+                    -
+                  </Button>
+                  <Input 
+                    id="rental-days"
+                    type="number" 
+                    value={rentalDays} 
+                    onChange={(e) => setRentalDays(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-20 mx-2 text-center" 
+                    min="1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setRentalDays(prev => prev + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Price per day:</span>
+                  <span>${product.price_per_day}</span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span>Rental period:</span>
+                  <span>{rentalDays} day{rentalDays > 1 ? 's' : ''}</span>
+                </div>
+                
+                {product.security_deposit > 0 && (
+                  <div className="flex justify-between">
+                    <span>Security deposit (refundable):</span>
+                    <span>${product.security_deposit}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
+                  <span>Total cost:</span>
+                  <span>${calculateTotalCost(rentalDays, product.price_per_day, product.security_deposit || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3 mb-6">
+              <Button 
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => {
+                  // Check if owner has WhatsApp number
+                  if (!product?.profiles?.whatsapp_number) {
+                    toast({
+                      title: 'WhatsApp not available',
+                      description: 'The owner has not provided a WhatsApp contact number.',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  
+                  // Open WhatsApp with message
+                  const whatsappNumber = product.profiles.whatsapp_number.startsWith('+') 
+                    ? product.profiles.whatsapp_number.substring(1) 
+                    : product.profiles.whatsapp_number;
+                  
+                  window.open(
+                    `https://wa.me/${whatsappNumber}?text=${generateWhatsAppMessage(product)}`,
+                    '_blank'
+                  );
+                }}
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Contact on WhatsApp
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className={`flex items-center ${isItemSaved ? 'text-red-500 border-red-200' : ''}`}
+                onClick={() => {
+                  if (!user) {
+                    toast({
+                      title: 'Authentication required',
+                      description: 'Please sign in to save items to your wishlist',
+                      variant: 'destructive',
+                    });
+                    return;
+                  }
+                  saveToWishlist.mutate();
+                }}
+                disabled={saveToWishlist.isPending}
+              >
+                {saveToWishlist.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isItemSaved ? (
+                  <Heart className="w-4 h-4 mr-2 fill-current" />
+                ) : (
+                  <Heart className="w-4 h-4 mr-2" />
+                )}
+                {isItemSaved ? 'Saved' : 'Save'}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="flex items-center"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({
+                    title: 'Link copied',
+                    description: 'Product link has been copied to clipboard',
+                  });
+                }}
+              >
+                <Share className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+
+            {/* Owner */}
+            <div className="border border-gray-200 rounded-lg p-4 flex items-center">
+              <div className="bg-gray-100 p-2 rounded-full mr-3">
+                {product.profiles.avatar_url ? (
+                  <img
+                    src={product.profiles.avatar_url}
+                    alt={product.profiles.username}
+                    className="w-10 h-10 rounded-full"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold">
+                      {product.profiles.username.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold">{product.profiles.username}</p>
+                {product.verification_status === 'verified' && (
+                  <div className="flex items-center text-green-600 text-sm">
+                    <Shield className="w-3 h-3 mr-1" />
+                    <span>• Verified Seller</span>
+                  </div>
+                )}
+                {product.profiles.whatsapp_number && (
+                  <div className="flex items-center text-gray-600 text-sm">
+                    <Phone className="w-3 h-3 mr-1" />
+                    <span>WhatsApp Available</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold mb-6">Reviews & Ratings</h2>
+          
+          <Tabs defaultValue="reviews" className="w-full">
+            <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+              <TabsTrigger value="reviews">Customer Reviews</TabsTrigger>
+              <TabsTrigger value="write-review">Write a Review</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="reviews" className="mt-6">
+              <ReviewList itemId={id || ''} refreshTrigger={refreshReviews} />
+            </TabsContent>
+            
+            <TabsContent value="write-review" className="mt-6">
+              <div className="border border-gray-200 rounded-lg p-6 bg-white">
+                <h3 className="text-xl font-semibold mb-4">Share Your Experience</h3>
+                <ReviewForm 
+                  itemId={id || ''} 
+                  onReviewSubmitted={handleReviewSubmitted} 
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold mb-6">Similar Products</h2>
+            
+            {isRelatedLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-gray-200 h-48 rounded-lg mb-3"></div>
+                    <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))}
+              </div>
+            ) : relatedProducts && relatedProducts.length === 0 ? (
+              <p className="text-gray-500">No similar products found.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {relatedProducts && relatedProducts.map((item) => (
+                  <Card key={item.id} className="overflow-hidden h-full">
+                    <div className="aspect-square overflow-hidden bg-gray-50 max-h-[200px]">
+                      {item.images && item.images.length > 0 ? (
+                        <img
+                          src={getImageUrl(item.images[0])}
+                          alt={item.title}
+                          className="w-full h-full object-contain transition-transform hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                          <p className="text-gray-400">No image</p>
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <h4 className="font-semibold mb-1 line-clamp-1">{item.title}</h4>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[#F7996E] font-semibold">${item.price_per_day}/day</p>
+                        <p className="text-sm text-gray-500">{item.location}</p>
+                      </div>
+                      <Button
+                        onClick={() => navigate(`/product/${item.id}`)}
+                        className="w-full mt-3 bg-[#F7996E] hover:bg-[#e8895f] text-white"
+                      >
+                        View Details
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Product;

@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X, User, LogOut } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Heart, Menu, Search, User, X, Bookmark, LogOut } from 'lucide-react';
+import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
@@ -41,6 +40,9 @@ const Header = () => {
             <Link to="/list-item" className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors">
               List Item
             </Link>
+            <Link to="/wishlist" className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors">
+              Wishlist
+            </Link>
           </nav>
 
           {/* Desktop Auth Buttons */}
@@ -57,6 +59,10 @@ const Header = () => {
                   <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User className="w-4 h-4 mr-2" />
                     Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/wishlist')}>
+                    <Heart className="w-4 h-4 mr-2" />
+                    Wishlist
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />
@@ -114,10 +120,17 @@ const Header = () => {
               >
                 List Item
               </Link>
+              <Link 
+                to="/wishlist" 
+                className="text-gray-700 hover:text-[#F7996E] font-medium transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Wishlist
+              </Link>
               
               <div className="pt-4 border-t border-gray-200">
                 {user ? (
-                  <div className="space-y-2">
+                  <div>
                     <p className="text-sm text-gray-600">
                       {user.user_metadata?.full_name || user.email}
                     </p>

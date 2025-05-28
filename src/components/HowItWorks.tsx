@@ -7,25 +7,33 @@ const steps = [
     icon: Search,
     title: 'Find What You Need',
     description: 'Browse through thousands of items from your neighborhood. Filter by category, price, and availability.',
-    color: 'bg-blue-100 text-blue-600'
+    color: 'bg-[#ffebe3] text-[#F7996E]'
   },
   {
     icon: Heart,
     title: 'Book & Enjoy',
     description: 'Select your dates, make a secure payment, and get the item delivered or pick it up yourself.',
-    color: 'bg-red-100 text-red-600'
+    color: 'bg-[#ffebe3] text-[#F7996E]'
   },
   {
     icon: TrendingUp,
     title: 'Return & Earn',
     description: 'Return the item on time and rate your experience. List your own items to start earning!',
-    color: 'bg-green-100 text-green-600'
+    color: 'bg-[#ffebe3] text-[#F7996E]'
   }
 ];
 
 const HowItWorks = () => {
   return (
-    <section className="py-16 px-6 bg-white">
+    <section className="py-16 px-6 bg-white relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 z-0 opacity-10">
+        <div className="absolute inset-0" style={{ 
+          backgroundImage: `radial-gradient(#F7996E 1px, transparent 1px), radial-gradient(#F7996E 1px, transparent 1px)`,
+          backgroundSize: `30px 30px`,
+          backgroundPosition: `0 0, 15px 15px`
+        }}></div>
+      </div>
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-[#181A2A] mb-4">

@@ -78,10 +78,9 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-poppins">
-      <Header />
+    <div className="min-h-screen bg-white font-poppins flex items-center justify-center">
       
-      <div className="pt-20 pb-16">
+      <div className="w-full py-16">
         <div className="max-w-md mx-auto px-6">
           <Card className="shadow-lg">
             <CardHeader className="text-center">
@@ -192,7 +191,6 @@ const Auth = () => {
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 };
