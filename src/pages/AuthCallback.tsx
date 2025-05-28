@@ -1,39 +1,83 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // This will parse the URL and handle the OAuth callback
-        const { data, error } = await supabase.auth.getSession();
+        setIsLoading(true);
         
-        if (error) {
-          console.error('Error handling auth callback:', error);
-          navigate('/auth?error=authentication_failed');
-          return;
+        // Check for any error from the OAuth provider
+        const errorDescription = searchParams.get('error_description');
+        if (errorDescription) {
+          throw new Error(errorDescription);
         }
 
-        // Redirect to dashboard or home after successful authentication
-        navigate('/');
-      } catch (error) {
-        console.error('Unexpected error during auth callback:', error);
-        navigate('/auth?error=unexpected_error');
+        // Get the session from the URL hash
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session) {
+          throw error || new Error('No session found');
+        }
+
+        // Store the user data in localStorage for persistence
+        localStorage.setItem('supabase.auth.token', JSON.stringify({
+          currentSession: session,
+          expiresAt: session.expires_at
+        }));
+
+        // Redirect to the dashboard or home page
+        navigate('/browse');
+      } catch (error: any) {
+        console.error('Auth callback error:', error);
+        setError(error.message || 'Authentication failed. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     handleAuthCallback();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F7996E] mx-auto mb-4"></div>
-        <p className="text-gray-600">Signing you in...</p>
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F7996E] mx-auto mb-4"></div>
+          <p className="text-gray-600">Signing you in...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+          <div className="text-red-500 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Authentication Failed</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Button 
+            onClick={() => navigate('/auth')} 
+            className="bg-[#F7996E] hover:bg-[#e68a60] w-full"
+          >
+            Return to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }

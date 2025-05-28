@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, signInWithOAuth } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -65,21 +65,15 @@ const Auth = () => {
 
   const handleGoogleAuth = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
+      setLoading(true);
+      setError('');
       
-      if (error) throw error;
+      await signInWithOAuth('google');
+      // The user will be redirected to the OAuth provider
     } catch (error: any) {
       console.error('Google OAuth error:', error);
-      setError('Failed to sign in with Google. Please try again.');
+      setError(error.message || 'Failed to sign in with Google. Please try again.');
+      setLoading(false);
     }
   };
 
