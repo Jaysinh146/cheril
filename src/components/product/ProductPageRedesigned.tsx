@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,6 +25,7 @@ interface ProductPageRedesignedProps {
   isItemSaved: boolean;
   onSaveToWishlist: () => void;
   onRentNow: () => void;
+  getAvailableRentalDays?: () => number | null;
 }
 
 const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
@@ -36,16 +38,24 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
   calculateTotalCost,
   isItemSaved,
   onSaveToWishlist,
-  onRentNow
+  onRentNow,
+  getAvailableRentalDays
 }) => {
-  // Available rental durations
-  const rentalOptions = [
+  // Get maximum available rental days
+  const maxAvailableDays = getAvailableRentalDays?.() || null;
+  
+  // Available rental durations - filter based on availability if dates are set
+  const baseRentalOptions = [
     { days: 1, label: '1 day' },
     { days: 3, label: '3 days' },
     { days: 7, label: '7 days' },
     { days: 14, label: '14 days' },
     { days: 30, label: '30 days' }
   ];
+  
+  const rentalOptions = maxAvailableDays 
+    ? baseRentalOptions.filter(option => option.days <= maxAvailableDays)
+    : baseRentalOptions;
   
   // Custom rental duration
   const [customDays, setCustomDays] = useState<string>('');
@@ -59,7 +69,8 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
   // Apply custom days
   const applyCustomDays = () => {
     const days = parseInt(customDays, 10);
-    if (!isNaN(days) && days > 0 && days <= 365) {
+    const maxDays = maxAvailableDays || 365;
+    if (!isNaN(days) && days > 0 && days <= maxDays) {
       setRentalDays(days);
       setCustomDays('');
     }
@@ -129,6 +140,21 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
               </h2>
             </div>
 
+            {/* Availability dates if set */}
+            {product.available_from && product.available_till && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-blue-800 mb-1">Available Period:</p>
+                <p className="text-sm text-blue-700">
+                  {format(new Date(product.available_from), 'MMM dd, yyyy')} - {format(new Date(product.available_till), 'MMM dd, yyyy')}
+                </p>
+                {maxAvailableDays && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Available for {maxAvailableDays} day{maxAvailableDays > 1 ? 's' : ''} only
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Price information */}
             <div>
               <p className="text-lg">
@@ -180,18 +206,24 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
                     type="text"
                     value={customDays}
                     onChange={handleCustomDaysChange}
-                    placeholder="Custom days"
+                    placeholder={maxAvailableDays ? `Custom days (max ${maxAvailableDays})` : "Custom days"}
                     className="w-full p-2 border rounded-md"
                   />
                 </div>
                 <Button 
                   onClick={applyCustomDays}
-                  disabled={!customDays || parseInt(customDays, 10) <= 0}
+                  disabled={!customDays || parseInt(customDays, 10) <= 0 || (maxAvailableDays && parseInt(customDays, 10) > maxAvailableDays)}
                   className="bg-[#F7996E] hover:bg-[#e8895f] text-white"
                 >
                   Apply
                 </Button>
               </div>
+              
+              {maxAvailableDays && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Available for {maxAvailableDays} day{maxAvailableDays > 1 ? 's' : ''} only
+                </p>
+              )}
             </div>
 
             {/* Total cost */}

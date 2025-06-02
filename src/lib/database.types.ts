@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -86,6 +87,8 @@ export interface Database {
       }
       items: {
         Row: {
+          available_from: string | null
+          available_till: string | null
           category_id: string
           created_at: string
           description: string
@@ -107,6 +110,8 @@ export interface Database {
           security_deposit: number | null
         }
         Insert: {
+          available_from?: string | null
+          available_till?: string | null
           category_id: string
           created_at?: string
           description: string
@@ -128,6 +133,8 @@ export interface Database {
           security_deposit?: number | null
         }
         Update: {
+          available_from?: string | null
+          available_till?: string | null
           category_id?: string
           created_at?: string
           description?: string

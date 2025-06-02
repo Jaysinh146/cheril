@@ -1,132 +1,96 @@
-import React from 'react';
-import { Star, User } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Database } from '@/lib/database.types';
 
-// Define Review type until Supabase types are properly updated
-type Review = {
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { formatDistanceToNow } from 'date-fns';
+import RatingStars from './product/RatingStars';
+
+interface Review {
   id: string;
   rating: number;
   comment: string | null;
   created_at: string;
-  reviewer_id: string;
   profiles: {
     id: string;
-    full_name: string | null;
-    avatar_url: string | null;
+    full_name: string;
+    avatar_url: string;
   };
-};
-
-// The Review type is now imported from supabase.types.ts
-
-interface ReviewListProps {
-  itemId: string;
-  refreshTrigger: number;
 }
 
-const ReviewList = ({ itemId, refreshTrigger }: ReviewListProps) => {
-  const { data: reviews, isLoading, error } = useQuery<Review[]>({
-    queryKey: ['reviews', itemId, refreshTrigger],
-    queryFn: async () => {
-      // Use type assertion to handle TypeScript errors with reviews table
-      const { data, error } = await supabase
-        .from('reviews' as any)
-        .select(`
-          id,
-          rating,
-          comment,
-          created_at,
-          reviewer_id,
-          profiles:reviewer_id (id, full_name, avatar_url)
-        `)
-        .eq('item_id', itemId)
-        .order('created_at', { ascending: false });
+interface ReviewListProps {
+  reviews: Review[];
+  isLoading: boolean;
+}
 
-      if (error) throw error;
-      return data as unknown as Review[];
-    },
-  });
-  
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }).map((_, index) => (
-      <Star
-        key={index}
-        className={`h-4 w-4 ${
-          index < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
-  
+const ReviewList: React.FC<ReviewListProps> = ({ reviews, isLoading }) => {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="border rounded-lg p-4 space-y-3">
-            <div className="flex items-center space-x-2">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-24" />
+        {[...Array(3)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-4">
+                <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
               </div>
-            </div>
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-16 w-full" />
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
   }
-  
-  if (error) {
-    return <div className="text-red-500">Error loading reviews: {error.message}</div>;
-  }
-  
+
   if (!reviews || reviews.length === 0) {
     return (
-      <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
-        <p className="text-gray-500">No reviews yet. Be the first to leave a review!</p>
+      <div className="text-center py-8">
+        <p className="text-gray-500">No reviews yet. Be the first to review this item!</p>
       </div>
     );
   }
-  
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {reviews.map((review) => (
-        <div key={review.id} className="border border-gray-200 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gray-100 p-2 rounded-full">
-                {review.profiles?.avatar_url ? (
-                  <img 
-                    src={review.profiles.avatar_url} 
-                    alt={review.profiles.username || 'User'}
-                    className="h-8 w-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <User className="h-5 w-5 text-gray-500" />
+        <Card key={review.id}>
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-4">
+              <Avatar className="w-10 h-10">
+                <AvatarImage 
+                  src={review.profiles?.avatar_url} 
+                  alt={review.profiles?.full_name || 'User'} 
+                />
+                <AvatarFallback>
+                  {review.profiles?.full_name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-900">
+                    {review.profiles?.full_name || 'Anonymous User'}
+                  </h4>
+                  <span className="text-sm text-gray-500">
+                    {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                
+                <div className="mb-2">
+                  <RatingStars rating={review.rating} />
+                </div>
+                
+                {review.comment && (
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    {review.comment}
+                  </p>
                 )}
               </div>
-              <div>
-                <p className="font-medium">{review.profiles?.full_name || 'Anonymous User'}</p>
-                <p className="text-sm text-gray-500">
-                  {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
-                </p>
-              </div>
             </div>
-          </div>
-          
-          <div className="flex mb-2">
-            {renderStars(review.rating)}
-          </div>
-          
-          {review.comment && (
-            <p className="text-gray-700 mt-2">{review.comment}</p>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

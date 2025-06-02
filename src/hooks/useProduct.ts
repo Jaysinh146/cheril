@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,8 @@ export type ExtendedItem = {
   color?: string;
   dimensions?: string;
   security_deposit?: number;
+  available_from?: string | null;
+  available_till?: string | null;
   categories: {
     id: string;
     name: string;
@@ -181,6 +184,20 @@ export const useProduct = (id: string | undefined) => {
     return (days * pricePerDay) + deposit;
   };
 
+  // Calculate available rental days based on availability dates
+  const getAvailableRentalDays = (): number | null => {
+    if (!product?.available_from || !product?.available_till) {
+      return null; // No availability restrictions
+    }
+
+    const fromDate = new Date(product.available_from);
+    const tillDate = new Date(product.available_till);
+    const diffTime = tillDate.getTime() - fromDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end dates
+    
+    return Math.max(1, diffDays);
+  };
+
   return {
     product,
     isProductLoading,
@@ -193,6 +210,7 @@ export const useProduct = (id: string | undefined) => {
     activeImage,
     setActiveImage,
     getImageUrl,
-    calculateTotalCost
+    calculateTotalCost,
+    getAvailableRentalDays
   };
 };

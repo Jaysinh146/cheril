@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -189,7 +188,14 @@ const ListItemSteps = () => {
         description: formData.description,
         price_per_day: parseFloat(formData.dailyPrice) || 0,
         location: formData.location,
-        images: formData.images
+        images: formData.images,
+        available_from: formData.availableFrom || null,
+        available_till: formData.availableTo || null,
+        security_deposit: parseFloat(formData.securityDeposit) || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_available: true,
+        verification_status: 'pending'
       });
       
       const { error, data } = await supabase.from('items').insert({
@@ -200,6 +206,9 @@ const ListItemSteps = () => {
         price_per_day: parseFloat(formData.dailyPrice) || 0,
         location: formData.location,
         images: formData.images,
+        available_from: formData.availableFrom || null,
+        available_till: formData.availableTo || null,
+        security_deposit: parseFloat(formData.securityDeposit) || 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         is_available: true,
@@ -317,7 +326,6 @@ const ListItemSteps = () => {
                 Upload clear, high-quality photos of your item. Multiple angles and details help potential renters.
               </p>
               
-              {/* Use our new ImageUploader component */}
               <ImageUploader
                 userId={user?.id || ''}
                 itemId={tempItemId}
@@ -434,6 +442,9 @@ const ListItemSteps = () => {
                   onChange={(e) => setFormData({...formData, availableFrom: e.target.value})}
                   className="border-gray-300 focus:border-[#F7996E] font-poppins"
                 />
+                <p className="text-xs text-gray-500 mt-1 font-poppins">
+                  Optional: Restrict rental availability to specific dates
+                </p>
               </div>
 
               <div>
@@ -447,6 +458,9 @@ const ListItemSteps = () => {
                   onChange={(e) => setFormData({...formData, availableTo: e.target.value})}
                   className="border-gray-300 focus:border-[#F7996E] font-poppins"
                 />
+                <p className="text-xs text-gray-500 mt-1 font-poppins">
+                  Optional: Set end date for availability
+                </p>
               </div>
             </div>
           </div>
@@ -466,6 +480,9 @@ const ListItemSteps = () => {
                 <p><strong>Daily Price:</strong> ₹{formData.dailyPrice || '0'}</p>
                 <p><strong>Location:</strong> {formData.location || 'Not provided'}</p>
                 <p><strong>Photos:</strong> {formData.images.length} uploaded</p>
+                {formData.availableFrom && formData.availableTo && (
+                  <p><strong>Available:</strong> {formData.availableFrom} to {formData.availableTo}</p>
+                )}
               </div>
             </div>
             <p className="text-sm text-gray-500 font-poppins">

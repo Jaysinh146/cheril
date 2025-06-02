@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,8 @@ const Product = () => {
       activeImage,
       setActiveImage,
       getImageUrl,
-      calculateTotalCost
+      calculateTotalCost,
+      getAvailableRentalDays
     } = useProduct(id);
   
     const {
@@ -65,6 +67,20 @@ const Product = () => {
     const handleReviewSubmitted = useCallback(() => {
       setRefreshReviews(prev => prev + 1);
     }, []);
+
+    // Handle wishlist save
+    const handleSaveToWishlist = useCallback(() => {
+      if (!user) {
+        toast({
+          title: 'Login Required',
+          description: 'Please login to save items to your wishlist',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      saveToWishlist.mutate();
+    }, [user, saveToWishlist, toast]);
   
     // Loading state
     if (isProductLoading) {
@@ -121,7 +137,8 @@ const Product = () => {
               setRentalDays={setRentalDays}
               calculateTotalCost={calculateTotalCost}
               isItemSaved={isItemSaved}
-              onSaveToWishlist={saveToWishlist.mutate}
+              onSaveToWishlist={handleSaveToWishlist}
+              getAvailableRentalDays={getAvailableRentalDays}
               onRentNow={() => {
                 // Check for phone number in profile data
                 // Use either whatsapp_number or phone field, whichever is available

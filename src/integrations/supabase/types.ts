@@ -86,6 +86,8 @@ export type Database = {
       }
       items: {
         Row: {
+          available_from: string | null
+          available_till: string | null
           category_id: string
           created_at: string
           description: string | null
@@ -100,6 +102,8 @@ export type Database = {
           verification_status: string | null
         }
         Insert: {
+          available_from?: string | null
+          available_till?: string | null
           category_id: string
           created_at?: string
           description?: string | null
@@ -114,6 +118,8 @@ export type Database = {
           verification_status?: string | null
         }
         Update: {
+          available_from?: string | null
+          available_till?: string | null
           category_id?: string
           created_at?: string
           description?: string | null
