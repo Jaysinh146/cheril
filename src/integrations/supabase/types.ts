@@ -152,6 +152,7 @@ export type Database = {
           id: string
           phone: string | null
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -160,6 +161,7 @@ export type Database = {
           id: string
           phone?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -168,15 +170,160 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: []
+      }
+      ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          item_id: string
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          item_id: string
+          rating: number
+          reviewer_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          rating: number
+          reviewer_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          rating?: number
+          reviewer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlists: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_average_rating: {
+        Args: { item_id: string }
+        Returns: number
+      }
+      get_all_item_ratings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          item_id: string
+          average_rating: number
+          rating_count: number
+        }[]
+      }
+      get_average_rating_for_item: {
+        Args: { item_id: string }
+        Returns: {
+          average_rating: number
+          count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

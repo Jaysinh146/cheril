@@ -66,27 +66,33 @@ export const useProduct = (id: string | undefined) => {
         .select(`
           *,
           categories(*),
-          profiles:owner_id(id, username:full_name, avatar_url, created_at, updated_at, phone:phone)
+          profiles:owner_id(id, full_name, avatar_url, created_at, updated_at, phone, whatsapp_number)
         `)
         .eq('id', id)
         .single();
 
       if (error) throw error;
       
+      console.log('Raw profile data from Supabase:', data.profiles);
+      
       // Transform the data to match our ExtendedItem type
       const transformedData = {
         ...data,
         profiles: {
           ...data.profiles,
-          // Use profile data to set username (from query it comes as 'username' because we aliased full_name)
-          username: data.profiles?.username || `User ${data.owner_id.substring(0, 5)}`,
+          // Use full_name as username
+          username: data.profiles?.full_name || `User ${data.owner_id.substring(0, 5)}`,
           // Add missing fields with defaults
           bio: '',
           location: data.location || '',
           website: '',
-          whatsapp_number: data.profiles?.phone || ''
+          // Keep the whatsapp_number and phone as they are from the database
+          whatsapp_number: data.profiles?.whatsapp_number || null,
+          phone: data.profiles?.phone || null
         }
       };
+      
+      console.log('Transformed profile data:', transformedData.profiles);
       
       return transformedData as unknown as ExtendedItem;
     },

@@ -72,6 +72,15 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
     product.security_deposit || 0
   );
 
+  // Check if contact information is available
+  const hasContactInfo = product.profiles?.phone || product.profiles?.whatsapp_number;
+  
+  console.log('Contact info check:', {
+    phone: product.profiles?.phone,
+    whatsapp: product.profiles?.whatsapp_number,
+    hasContactInfo
+  });
+
   return (
     <div className="bg-white rounded-lg p-4 md:p-6 shadow-md">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
@@ -204,7 +213,7 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
             </div>
 
             {/* Contact Information Warning */}
-            {!product.profiles?.phone && !product.profiles?.whatsapp_number && (
+            {!hasContactInfo && (
               <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
                 <p className="font-semibold">Contact Information Missing</p>
                 <p className="text-sm">The owner has not provided contact information</p>
@@ -216,7 +225,7 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
               <Button 
                 className="bg-[#F7996E] hover:bg-[#e8895f] text-white flex-grow h-10 md:h-12"
                 onClick={onRentNow}
-                disabled={!product.profiles?.phone && !product.profiles?.whatsapp_number}
+                disabled={!hasContactInfo}
               >
                 Send Message on WhatsApp
               </Button>
