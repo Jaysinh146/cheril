@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -93,8 +92,8 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
   });
 
   return (
-    <div className="bg-white rounded-lg p-4 md:p-6 shadow-md">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+    <div className="bg-white rounded-lg p-4 md:p-10 shadow-lg border border-gray-100 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
         {/* Left column - Product Images */}
         <div className="mb-6 md:mb-0">
           {/* Main image */}
@@ -129,7 +128,7 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
 
         {/* Right column - Product Details */}
         <div>
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-4 md:space-y-8">
             {/* Category and product name */}
             <div>
               <h1 className="uppercase text-sm md:text-xl text-gray-500 mb-1">
@@ -138,6 +137,9 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
               <h2 className="text-2xl md:text-3xl font-bold break-words">
                 {product.title}
               </h2>
+              {!product.is_available && (
+                <Badge className="bg-red-500 text-white text-xs ml-2 align-middle">Unavailable</Badge>
+              )}
             </div>
 
             {/* Availability dates if set */}
@@ -156,9 +158,9 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
             )}
 
             {/* Price information */}
-            <div>
-              <p className="text-lg">
-                Rent ₹{product.price_per_day.toFixed(2)} per day
+            <div className="mb-4">
+              <p className="text-lg md:text-2xl font-bold text-gray-900">
+                Rent ₹{product.price_per_day.toFixed(2)} <span className="font-normal text-base md:text-lg">per day</span>
               </p>
               <p className="text-sm text-gray-500">
                 From ₹{(product.price_per_day * 4).toFixed(2)} for 4+ days
@@ -257,18 +259,25 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
               <Button 
                 className="bg-[#F7996E] hover:bg-[#e8895f] text-white flex-grow h-10 md:h-12"
                 onClick={onRentNow}
-                disabled={!hasContactInfo}
+                disabled={!hasContactInfo || !product.is_available}
               >
-                Send Message on WhatsApp
+                {product.is_available ? 'Send Message on WhatsApp' : 'Currently Unavailable'}
               </Button>
               <Button 
                 variant="outline"
                 className={`h-10 md:h-12 w-10 md:w-12 flex-shrink-0 ${isItemSaved ? 'text-red-500 border-red-200' : ''}`}
                 onClick={onSaveToWishlist}
+                disabled={!product.is_available}
               >
                 <Heart className={isItemSaved ? 'fill-current' : ''} size={18} />
               </Button>
             </div>
+
+            {!product.is_available && (
+              <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-md">
+                <p className="font-semibold">This product is currently unavailable for rent.</p>
+              </div>
+            )}
 
             {/* Item details section */}
             <div className="pt-4 md:pt-6 mt-4 md:mt-6 border-t border-gray-200">

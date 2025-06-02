@@ -173,14 +173,12 @@ const Browse = () => {
     queryKey: ['ratings'],
     queryFn: async () => {
       try {
-        // Use explicit type casting for the RPC function call
         const { data, error } = await (supabase.rpc as any)('get_all_item_ratings');
-        
         if (error) {
           console.error('Error fetching ratings:', error);
           return [];
         }
-        
+        console.log('Ratings RPC data:', data); // Debug log
         return data || [];
       } catch (error) {
         console.error('Error in ratings query:', error);
@@ -288,14 +286,13 @@ const Browse = () => {
   // Process items to include their ratings
   const itemsWithRatings = React.useMemo(() => {
     if (!items || !ratings) return items;
-    
     return items.map(item => {
       // Find the rating for this item
       const itemRating = ratings.find((r: any) => r.item_id === item.id);
       return {
         ...item,
-        rating: itemRating ? parseFloat(itemRating.average_rating) : 0,
-        ratingCount: itemRating ? parseInt(itemRating.count, 10) : 0
+        rating: itemRating && itemRating.average_rating ? parseFloat(itemRating.average_rating) : 0,
+        ratingCount: itemRating && itemRating.rating_count ? parseInt(itemRating.rating_count, 10) : 0
       };
     });
   }, [items, ratings]);
@@ -564,8 +561,9 @@ const Browse = () => {
                               <div className="text-yellow-500 flex items-center flex-shrink-0">
                                 <Star className="w-3 h-3 mr-0.5" fill="currentColor" />
                                 <span className="font-medium">
-                                  {item.rating ? item.rating.toFixed(1) : 'New'}
-                                  {item.ratingCount > 0 && <span className="text-gray-500 text-xs ml-1">({item.ratingCount})</span>}
+                                  {item.ratingCount > 0
+                                    ? `${item.rating.toFixed(1)}/5 (${item.ratingCount} review${item.ratingCount > 1 ? 's' : ''})`
+                                    : 'New'}
                                 </span>
                               </div>
                             </div>

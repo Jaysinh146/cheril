@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,9 @@ import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProfileItemCard from '@/components/ProfileItemCard';
-import { Edit, Camera, MapPin, Phone, MessageSquare } from 'lucide-react';
+import { Edit, Camera, MapPin, Phone, MessageSquare, Trash2 } from 'lucide-react';
+import Analytics from './Analytics';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface UserItem {
   id: string;
@@ -45,6 +46,9 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<ProfileData>({});
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -147,17 +151,19 @@ const Profile = () => {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    setDeleteItemId(itemId);
+    setShowDeleteDialog(true);
+  };
 
+  const confirmDeleteItem = async () => {
+    if (!deleteItemId) return;
     try {
       const { error } = await supabase
         .from('items')
         .delete()
-        .eq('id', itemId);
-
+        .eq('id', deleteItemId);
       if (error) throw error;
-
-      setUserItems(prev => prev.filter(item => item.id !== itemId));
+      setUserItems(prev => prev.filter(item => item.id !== deleteItemId));
       toast({
         title: 'Success',
         description: 'Item deleted successfully',
@@ -169,6 +175,9 @@ const Profile = () => {
         description: 'Failed to delete item',
         variant: 'destructive',
       });
+    } finally {
+      setShowDeleteDialog(false);
+      setDeleteItemId(null);
     }
   };
 
@@ -184,6 +193,10 @@ const Profile = () => {
   };
 
   const handleSignOut = async () => {
+    setShowLogoutDialog(true);
+  };
+
+  const confirmSignOut = async () => {
     try {
       await signOut();
       navigate('/');
@@ -198,6 +211,8 @@ const Profile = () => {
         description: 'Failed to sign out',
         variant: 'destructive',
       });
+    } finally {
+      setShowLogoutDialog(false);
     }
   };
 
@@ -213,21 +228,62 @@ const Profile = () => {
           <Card>
             <CardHeader className="pb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="relative">
-                  <Avatar className="w-20 h-20">
-                    <AvatarImage src={profileData.avatar_url} />
-                    <AvatarFallback className="text-lg">
+                <div className="relative flex flex-col items-center">
+                  {profileData.avatar_url ? (
+                    <img
+                      src={profileData.avatar_url}
+                      alt="Profile"
+                      className="w-24 h-24 rounded-full object-cover border mb-2"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-2 text-3xl font-bold text-gray-500">
                       {profileData.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Camera className="h-4 w-4" />
-                  </Button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-10 w-10 rounded-full p-0 flex items-center justify-center"
+                      onClick={() => document.getElementById('profile-photo-upload')?.click()}
+                      title={profileData.avatar_url ? 'Replace Photo' : 'Add Photo'}
+                    >
+                      <Camera className="w-5 h-5" />
+                    </Button>
+                    {profileData.avatar_url && (
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="h-10 w-10 rounded-full p-0 flex items-center justify-center"
+                        onClick={async () => {
+                          setEditData({ ...editData, avatar_url: '' });
+                          setProfileData({ ...profileData, avatar_url: '' });
+                          await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+                        }}
+                        title="Remove Photo"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </Button>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="profile-photo-upload"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !user) return;
+                      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+                      const { data, error } = await supabase.storage.from('profile-picture').upload(filePath, file, { upsert: true });
+                      if (!error) {
+                        const { data: publicUrlData } = supabase.storage.from('profile-picture').getPublicUrl(filePath);
+                        setEditData({ ...editData, avatar_url: publicUrlData.publicUrl });
+                        setProfileData({ ...profileData, avatar_url: publicUrlData.publicUrl });
+                        await supabase.from('profiles').update({ avatar_url: publicUrlData.publicUrl }).eq('id', user.id);
+                      }
+                    }}
+                  />
                 </div>
                 
                 <div className="flex-1">
@@ -376,14 +432,7 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="analytics">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analytics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">Analytics dashboard coming soon...</p>
-                </CardContent>
-              </Card>
+              <Analytics />
             </TabsContent>
 
             <TabsContent value="settings">
@@ -401,6 +450,33 @@ const Profile = () => {
       </div>
 
       <Footer />
+
+      {/* Dialog for delete confirmation */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Item</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDeleteItem}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialog for logout confirmation */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign Out</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to sign out?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmSignOut}>Sign Out</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

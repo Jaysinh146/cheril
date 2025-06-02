@@ -9,15 +9,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-  const handleSignOut = async () => {
+  const handleSignOutClick = () => setShowLogoutDialog(true);
+  const confirmSignOut = async () => {
     await signOut();
     navigate('/');
+    setShowLogoutDialog(false);
   };
 
   return (
@@ -64,7 +68,7 @@ const Header = () => {
                     <Heart className="w-4 h-4 mr-2" />
                     Wishlist
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleSignOut}>
+                  <DropdownMenuItem onClick={handleSignOutClick}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>
@@ -149,7 +153,7 @@ const Header = () => {
                       variant="ghost" 
                       className="w-full justify-start text-left text-red-600 hover:text-red-700"
                       onClick={() => {
-                        handleSignOut();
+                        setShowLogoutDialog(true);
                         setIsMenuOpen(false);
                       }}
                     >
@@ -176,6 +180,20 @@ const Header = () => {
           </div>
         )}
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign Out</DialogTitle>
+          </DialogHeader>
+          <p>Are you sure you want to sign out?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmSignOut}>Sign Out</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };

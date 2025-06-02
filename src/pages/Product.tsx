@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import ReviewsSection from '@/components/product/ReviewsSection';
 import RatingStars from '@/components/product/RatingStars';
 import { useProduct } from '@/hooks/useProduct';
 import { useWishlist } from '@/hooks/useWishlist';
+import { supabase } from '@/integrations/supabase/client';
 
 const Product = () => {
     const { id } = useParams<{ id: string }>();
@@ -44,6 +44,19 @@ const Product = () => {
     useEffect(() => {
       window.scrollTo(0, 0);
     }, []);
+  
+    // Track product view in Supabase
+    useEffect(() => {
+      if (!product) return;
+      const trackView = async () => {
+        await supabase.from('views').insert({
+          item_id: product.id,
+          viewed_at: new Date().toISOString(),
+          viewer_id: user?.id || null,
+        });
+      };
+      trackView();
+    }, [product, user]);
   
     // Generate WhatsApp message
     const generateWhatsAppMessage = useCallback((item: any): string => {
@@ -110,7 +123,7 @@ const Product = () => {
   
         <div className="container mx-auto px-4 py-8 mt-6">
           {/* Breadcrumb */}
-          <div className="flex items-center mb-6">
+          <div className="flex items-center mb-6 mt-6">
             <Button 
               variant="ghost" 
               onClick={() => navigate(-1)}
