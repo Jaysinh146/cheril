@@ -24,6 +24,16 @@ export default function AuthCallback() {
         // Check for email confirmation
         const type = searchParams.get('type');
         if (type === 'email_confirm') {
+          // Try to get session and auto-login
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            localStorage.setItem('supabase.auth.token', JSON.stringify({
+              currentSession: session,
+              expiresAt: session.expires_at
+            }));
+            navigate('/browse');
+            return;
+          }
           setEmailConfirmed(true);
           setIsLoading(false);
           return;
