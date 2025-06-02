@@ -1,157 +1,42 @@
-import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
+import { useWishlist } from '@/hooks/useWishlist';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Heart, Loader2 } from 'lucide-react';
+import OptimizedImage from '@/components/ui/OptimizedImage';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Wishlist = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   
-  // Fetch saved items with a two-step approach
-  const { data: wishlistItems = [], isLoading, error } = useQuery({
-    queryKey: ['wishlist', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
+  const {
+    wishlistItems,
+    isLoadingWishlist,
+    saveToWishlist
+  } = useWishlist(undefined, user?.id);
 
-      try {
-        // Step 1: Get all wishlist entries for the user
-        // Use type assertion to bypass TypeScript schema validation
-        const { data: wishlistData, error: wishlistError } = await supabase
-          .from('wishlists' as any)
-          .select('id, item_id, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-        
-        if (wishlistError) {
-          console.error('Wishlist fetch error:', wishlistError);
-          return [];
-        }
-        
-        if (!wishlistData || wishlistData.length === 0) {
-          return [];
-        }
-        
-        // Step 2: Get item details for all wishlist items in one query
-        const itemIds = wishlistData.map((entry: any) => entry.item_id);
-        
-        if (itemIds.length === 0) {
-          return [];
-        }
-        
-        // Use proper .in() format with an array, not a string
-        // Use type assertion to bypass TypeScript schema validation
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('items' as any)
-          .select(`
-            id, 
-            title, 
-            price_per_day, 
-            images, 
-            location, 
-            category_id,
-            owner_id,
-            security_deposit,
-            profiles(id, full_name)
-          `)
-          .in('id', itemIds);
-        
-        if (itemsError) {
-          console.error('Items fetch error:', itemsError);
-          return [];
-        }
-        
-        if (!itemsData) {
-          return [];
-        }
-        
-        // Define proper type for items to fix spread error
-        interface ItemData {
-          id: string;
-          title: string;
-          price_per_day: number;
-          images: string[];
-          location: string;
-          category_id: string;
-          owner_id: string;
-          security_deposit?: number;
-          profiles?: {
-            id: string;
-            full_name?: string;
-          };
-          [key: string]: any; // Allow other properties
-        }
-        
-        // Merge wishlist data with item data
-        return wishlistData.map((wishlistEntry: any) => {
-          // Find the matching item and cast it properly to avoid TypeScript errors
-          const matchingItem = itemsData.find((item: any) => item.id === wishlistEntry.item_id);
-          if (!matchingItem) return null;
-          
-          // Cast to unknown first to avoid TypeScript conversion errors
-          const itemData = matchingItem as unknown as ItemData;
-          
-          // Create a new object with all properties from the properly cast itemData plus wishlist_id
-          return {
-            ...itemData,
-            wishlist_id: wishlistEntry.id
-          };
-        }).filter(Boolean);
-      } catch (error) {
-        console.error('Error fetching wishlist items:', error);
-        // Return empty array instead of throwing to prevent component crash
-        return [];
-      }
-    },
-    enabled: !!user,
-    retry: 1 // Limit retries to prevent excessive failed requests
-  });
-
-  // Remove from wishlist
-  const removeFromWishlist = useMutation({
-    mutationFn: async (wishlistId: string) => {
-      const { error } = await supabase
-        .from('wishlists' as any)
-        .delete()
-        .eq('id', wishlistId);
-      
-      if (error) throw error;
-      return wishlistId;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wishlist', user?.id] });
-      
-      toast({
-        title: 'Item removed',
-        description: 'Item has been removed from your wishlist',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove item from wishlist',
-        variant: 'destructive',
-      });
-      console.error('Error removing from wishlist:', error);
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
     }
-  });
+  }, [user, navigate]);
 
-  // Helper function to get image URL
-  const getImageUrl = (path: string): string => {
-    if (!path) return 'https://placehold.co/400x400/f0f0f0/999999?text=No+Image';
+  // Helper function to get Supabase storage image URLs
+  const getImageUrl = (path: string | null): string => {
+    if (!path) return 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
     
     if (path.startsWith('http')) {
       return path;
     }
-    
+
     try {
       const { data } = supabase.storage
         .from('item-images')
@@ -159,60 +44,36 @@ const Wishlist = () => {
       
       return data.publicUrl;
     } catch (error) {
-      console.error('Error getting image URL:', error);
-      return 'https://placehold.co/400x400/f0f0f0/999999?text=No+Image';
+      console.error('Error generating image URL:', error);
+      return 'https://placehold.co/600x400/e2e8f0/64748b?text=Error';
     }
   };
 
+  const handleRemoveFromWishlist = (itemId: string) => {
+    // This will use the existing wishlist hook but we need to create a temporary hook instance
+    // For now, let's handle it directly
+    supabase
+      .from('wishlists')
+      .delete()
+      .eq('item_id', itemId)
+      .eq('user_id', user?.id)
+      .then(() => {
+        // Refresh the page or trigger a refetch
+        window.location.reload();
+      });
+  };
+
   if (!user) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-12 border border-dashed border-gray-200 rounded-lg">
-            <p className="text-gray-500 mb-4">Please sign in to view your wishlist</p>
-            <Button 
-              onClick={() => navigate('/auth')} 
-              className="bg-[#F7996E] hover:bg-[#e8895f] text-white"
-            >
-              Sign In
-            </Button>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
+    return null; // Will redirect via useEffect
   }
 
-  if (isLoading) {
+  if (isLoadingWishlist) {
     return (
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-gradient-to-b from-[#ffebe3] to-white">
         <Header />
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-8">My Wishlist</h1>
-          <div className="text-center py-12">
-            <p className="text-gray-500">Loading your wishlist...</p>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-8">My Wishlist</h1>
-          <div className="text-center py-12 border border-dashed border-red-200 rounded-lg">
-            <p className="text-red-500 mb-4">There was an error loading your wishlist</p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="bg-[#F7996E] hover:bg-[#e8895f] text-white"
-            >
-              Try Again
-            </Button>
+        <div className="container mx-auto px-4 py-8 mt-6">
+          <div className="flex items-center justify-center h-96">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
         </div>
         <Footer />
@@ -221,68 +82,110 @@ const Wishlist = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-[#ffebe3] to-white">
       <Header />
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">My Wishlist</h1>
-        
+      
+      <div className="container mx-auto px-4 py-8 mt-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Wishlist</h1>
+          <p className="text-gray-600">
+            {wishlistItems.length > 0 
+              ? `You have ${wishlistItems.length} item${wishlistItems.length > 1 ? 's' : ''} saved` 
+              : 'Save items you love to view them later'}
+          </p>
+        </div>
+
         {wishlistItems.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-gray-200 rounded-lg">
-            <p className="text-gray-500 mb-4">Your wishlist is empty</p>
-            <Button 
-              onClick={() => navigate('/browse')} 
-              className="bg-[#F7996E] hover:bg-[#e8895f] text-white"
-            >
+          <div className="text-center py-12">
+            <Heart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Your wishlist is empty</h3>
+            <p className="text-gray-500 mb-6">Start browsing and save items you'd like to rent later.</p>
+            <Button onClick={() => navigate('/browse')} className="bg-[#F7996E] hover:bg-[#e8895f]">
               Browse Items
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {wishlistItems.map((item: any) => (
-              <Card key={item.id} className="overflow-hidden h-full">
-                <div className="relative aspect-square overflow-hidden">
-                  <img 
-                    src={item.images && item.images.length > 0 ? getImageUrl(item.images[0]) : 'https://placehold.co/400x400/f0f0f0/999999?text=No+Image'} 
-                    alt={item.title} 
-                    className="w-full h-full object-cover transition-transform hover:scale-105"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/f0f0f0/999999?text=No+Image';
-                    }}
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white text-red-500"
-                    onClick={() => removeFromWishlist.mutate(item.wishlist_id)}
-                    disabled={removeFromWishlist.isPending}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-gray-800 line-clamp-1 mb-1">{item.title}</h3>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#F7996E] font-medium">₹{item.price_per_day}/day</span>
-                    <span className="text-sm text-gray-500">{item.location}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {wishlistItems.map((wishlistItem) => {
+              const item = wishlistItem.items;
+              if (!item) return null;
+
+              return (
+                <Card key={wishlistItem.id} className="group hover:shadow-lg transition-all duration-200 overflow-hidden">
+                  <div className="relative aspect-square overflow-hidden bg-gray-50">
+                    <OptimizedImage
+                      src={getImageUrl(item.images?.[0] || '')}
+                      alt={item.title}
+                      className="w-full h-full group-hover:scale-105 transition-transform duration-200"
+                      objectFit="cover"
+                    />
+                    
+                    {/* Remove from wishlist button */}
+                    <button
+                      onClick={() => handleRemoveFromWishlist(item.id)}
+                      className="absolute top-2 right-2 p-2 bg-white/80 hover:bg-white rounded-full shadow-md transition-colors"
+                    >
+                      <Heart className="w-4 h-4 text-red-500 fill-current" />
+                    </button>
+                    
+                    {/* Status badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      <Badge 
+                        variant={item.is_available ? "default" : "secondary"}
+                        className={`text-xs ${item.is_available ? 'bg-green-500' : 'bg-red-500'}`}
+                      >
+                        {item.is_available ? 'Available' : 'Unavailable'}
+                      </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${
+                          item.verification_status === 'verified' ? 'bg-blue-50 text-blue-700' :
+                          item.verification_status === 'pending' ? 'bg-yellow-50 text-yellow-700' :
+                          'bg-red-50 text-red-700'
+                        }`}
+                      >
+                        {item.verification_status === 'verified' ? 'Verified' :
+                         item.verification_status === 'pending' ? 'Pending' : 'Rejected'}
+                      </Badge>
+                    </div>
                   </div>
-                  {item.security_deposit && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Deposit: ${item.security_deposit}
-                    </p>
-                  )}
-                  <Button
-                    onClick={() => navigate(`/product/${item.id}`)}
-                    className="w-full mt-3 bg-[#F7996E] hover:bg-[#e8895f] text-white"
-                  >
-                    View Details
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                  
+                  <CardContent className="p-4">
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">
+                          {item.categories?.name || 'Category'}
+                        </p>
+                        <h3 className="font-medium text-base line-clamp-2 text-gray-900">
+                          {item.title}
+                        </h3>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-lg font-semibold text-gray-900">
+                            ₹{item.price_per_day}
+                          </p>
+                          <p className="text-sm text-gray-500">per day</p>
+                        </div>
+                      </div>
+                      
+                      {/* Action button */}
+                      <Button
+                        onClick={() => navigate(`/product/${item.id}`)}
+                        className="w-full mt-3 bg-[#F7996E] hover:bg-[#e8895f] text-white"
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
+
       <Footer />
     </div>
   );

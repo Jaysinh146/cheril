@@ -1,95 +1,132 @@
+
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useWishlist = (itemId: string | undefined, userId: string | undefined) => {
-  const [isItemSaved, setIsItemSaved] = useState<boolean>(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Check if item is in wishlist
-  const { data: wishlistData } = useQuery({
-    queryKey: ['wishlist-check', itemId, userId],
+  // Check if item is saved to wishlist
+  const {
+    data: wishlistItem,
+    isLoading: isCheckingWishlist,
+  } = useQuery({
+    queryKey: ['wishlist-item', itemId, userId],
     queryFn: async () => {
-      if (!userId || !itemId) return null;
-
+      if (!itemId || !userId) return null;
+      
       const { data, error } = await supabase
         .from('wishlists')
         .select('id')
-        .eq('user_id', userId)
         .eq('item_id', itemId)
-        .single();
+        .eq('user_id', userId)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 is the error code for no rows returned
-        console.error('Error checking wishlist:', error);
-        return null;
-      }
-
+      if (error) throw error;
       return data;
     },
     enabled: !!itemId && !!userId,
   });
 
-  // Update isItemSaved state when wishlistData changes
-  useEffect(() => {
-    setIsItemSaved(!!wishlistData);
-  }, [wishlistData]);
+  // Fetch all wishlist items for the user
+  const {
+    data: wishlistItems = [],
+    isLoading: isLoadingWishlist,
+    refetch: refetchWishlist
+  } = useQuery({
+    queryKey: ['wishlist', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      
+      const { data, error } = await supabase
+        .from('wishlists')
+        .select(`
+          id,
+          created_at,
+          items:item_id (
+            id,
+            title,
+            price_per_day,
+            images,
+            is_available,
+            verification_status,
+            categories:category_id (
+              name
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-  // Save to wishlist mutation
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!userId,
+  });
+
+  // Save/remove from wishlist mutation
   const saveToWishlist = useMutation({
     mutationFn: async () => {
-      if (!userId || !itemId) throw new Error('User not authenticated or invalid item');
+      if (!itemId || !userId) {
+        throw new Error('Item ID and User ID are required');
+      }
 
-      if (isItemSaved) {
+      // Check if already in wishlist
+      if (wishlistItem) {
         // Remove from wishlist
         const { error } = await supabase
           .from('wishlists')
           .delete()
-          .eq('user_id', userId)
-          .eq('item_id', itemId);
+          .eq('item_id', itemId)
+          .eq('user_id', userId);
 
         if (error) throw error;
-        return { added: false };
+        return { action: 'removed' };
       } else {
         // Add to wishlist
         const { error } = await supabase
           .from('wishlists')
           .insert({
+            item_id: itemId,
             user_id: userId,
-            item_id: itemId
           });
 
         if (error) throw error;
-        return { added: true };
+        return { action: 'added' };
       }
     },
-    onSuccess: (data) => {
-      // Invalidate and refetch wishlist data
-      queryClient.invalidateQueries({ queryKey: ['wishlist-check', itemId, userId] });
+    onSuccess: (result) => {
+      // Invalidate and refetch wishlist queries
+      queryClient.invalidateQueries({ queryKey: ['wishlist-item', itemId, userId] });
       queryClient.invalidateQueries({ queryKey: ['wishlist', userId] });
       
-      setIsItemSaved(data.added);
-      
       toast({
-        title: data.added ? 'Item saved' : 'Item removed',
-        description: data.added 
-          ? 'Item has been added to your wishlist' 
+        title: result.action === 'added' ? 'Added to Wishlist' : 'Removed from Wishlist',
+        description: result.action === 'added' 
+          ? 'Item has been saved to your wishlist' 
           : 'Item has been removed from your wishlist',
-        variant: 'default',
       });
     },
     onError: (error) => {
+      console.error('Wishlist error:', error);
       toast({
         title: 'Error',
-        description: `Failed to update wishlist: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: 'Failed to update wishlist. Please try again.',
         variant: 'destructive',
       });
-    }
+    },
   });
+
+  const isItemSaved = !!wishlistItem;
 
   return {
     isItemSaved,
-    saveToWishlist
+    isCheckingWishlist,
+    wishlistItems,
+    isLoadingWishlist,
+    saveToWishlist,
+    refetchWishlist
   };
 };

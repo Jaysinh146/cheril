@@ -97,6 +97,7 @@ export type Database = {
           location: string
           owner_id: string
           price_per_day: number
+          security_deposit: number | null
           title: string
           updated_at: string
           verification_status: string | null
@@ -113,6 +114,7 @@ export type Database = {
           location: string
           owner_id: string
           price_per_day: number
+          security_deposit?: number | null
           title: string
           updated_at?: string
           verification_status?: string | null
@@ -129,6 +131,7 @@ export type Database = {
           location?: string
           owner_id?: string
           price_per_day?: number
+          security_deposit?: number | null
           title?: string
           updated_at?: string
           verification_status?: string | null
