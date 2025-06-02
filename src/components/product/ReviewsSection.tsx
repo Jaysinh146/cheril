@@ -1,8 +1,23 @@
+
 import React, { memo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
 import ReviewForm from '@/components/ReviewForm';
 import ReviewList from '@/components/ReviewList';
 import ErrorBoundary from '@/components/ErrorBoundary';
+
+interface Review {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  profiles: {
+    id: string;
+    full_name: string;
+    avatar_url: string;
+  };
+}
 
 interface ReviewsSectionProps {
   itemId: string;
@@ -19,6 +34,36 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
   refreshReviews,
   onReviewSubmitted
 }) => {
+  // Fetch reviews data
+  const {
+    data: reviews = [],
+    isLoading: isReviewsLoading,
+    error: reviewsError,
+  } = useQuery({
+    queryKey: ['reviews', itemId, refreshReviews],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          id,
+          rating,
+          comment,
+          created_at,
+          profiles:reviewer_id(
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('item_id', itemId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Review[];
+    },
+    enabled: !!itemId,
+  });
+
   return (
     <ErrorBoundary>
       <div className="mt-12">
@@ -35,8 +80,8 @@ const ReviewsSection: React.FC<ReviewsSectionProps> = ({
           
           <TabsContent value="reviews">
             <ReviewList 
-              itemId={itemId} 
-              refreshTrigger={refreshReviews} 
+              reviews={reviews}
+              isLoading={isReviewsLoading}
             />
           </TabsContent>
           
