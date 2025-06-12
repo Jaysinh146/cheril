@@ -10,6 +10,8 @@ import WhyChooseCheril from '@/components/WhyChooseCheril';
 import Testimonials from '@/components/Testimonials';
 import NewsletterSignup from '@/components/NewsletterSignup';
 import Footer from '@/components/Footer';
+import BannerAd from '@/components/ads/BannerAd';
+import ResponsiveAd from '@/components/ads/ResponsiveAd';
 
 const Index = () => {
   return (
@@ -55,14 +57,23 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Banner Ad after Hero */}
+      <BannerAd adSlot="1234567890" className="max-w-6xl" />
+
       {/* Featured Categories */}
       <FeaturedCategories />
+
+      {/* Responsive Ad between sections */}
+      <ResponsiveAd adSlot="2345678901" variant="gradient" className="max-w-4xl" />
 
       {/* How It Works */}
       <HowItWorks />
 
       {/* Why Choose Cheril */}
       <WhyChooseCheril />
+
+      {/* Another Ad placement */}
+      <ResponsiveAd adSlot="3456789012" variant="minimal" className="max-w-3xl" />
 
       {/* Testimonials */}
       <Testimonials />
