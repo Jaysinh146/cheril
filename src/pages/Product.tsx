@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -141,17 +140,6 @@ const Product = () => {
               <span className="text-gray-900 font-medium">{product.title}</span>
             </span>
           </div>
-
-          {/* Product Rating Display */}
-          {ratingData && ratingData.count > 0 && (
-            <div className="mb-4">
-              <ProductRating 
-                averageRating={ratingData.average_rating} 
-                reviewCount={ratingData.count}
-                size="lg"
-              />
-            </div>
-          )}
           
           <ErrorBoundary>
             <ProductPageRedesigned
@@ -165,6 +153,7 @@ const Product = () => {
               isItemSaved={isItemSaved}
               onSaveToWishlist={handleSaveToWishlist}
               getAvailableRentalDays={getAvailableRentalDays}
+              ratingData={ratingData}
               onRentNow={() => {
                 // Check for phone number in profile data
                 // Use either whatsapp_number or phone field, whichever is available

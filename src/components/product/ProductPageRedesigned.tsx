@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -6,7 +7,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Heart, Calendar as CalendarIcon } from 'lucide-react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
-import { ExtendedItem } from '@/hooks/useProduct';
+import ProductRating from '@/components/product/ProductRating';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ExtendedItem, AverageRatingResponse } from '@/hooks/useProduct';
 import {
   Popover,
   PopoverContent,
@@ -25,6 +28,7 @@ interface ProductPageRedesignedProps {
   onSaveToWishlist: () => void;
   onRentNow: () => void;
   getAvailableRentalDays?: () => number | null;
+  ratingData?: AverageRatingResponse;
 }
 
 const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
@@ -38,7 +42,8 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
   isItemSaved,
   onSaveToWishlist,
   onRentNow,
-  getAvailableRentalDays
+  getAvailableRentalDays,
+  ratingData
 }) => {
   // Get maximum available rental days
   const maxAvailableDays = getAvailableRentalDays?.() || null;
@@ -134,9 +139,21 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
               <h1 className="uppercase text-sm md:text-xl text-gray-500 mb-1">
                 {product.categories?.name || 'Category'}
               </h1>
-              <h2 className="text-2xl md:text-3xl font-bold break-words">
+              <h2 className="text-2xl md:text-3xl font-bold break-words mb-2">
                 {product.title}
               </h2>
+              
+              {/* Product Rating near title */}
+              {ratingData && ratingData.count > 0 && (
+                <div className="mb-2">
+                  <ProductRating 
+                    averageRating={ratingData.average_rating} 
+                    reviewCount={ratingData.count}
+                    size="md"
+                  />
+                </div>
+              )}
+              
               {!product.is_available && (
                 <Badge className="bg-red-500 text-white text-xs ml-2 align-middle">Unavailable</Badge>
               )}
@@ -312,26 +329,25 @@ const ProductPageRedesigned: React.FC<ProductPageRedesignedProps> = ({
               </div>
             )}
 
-            {/* Owner information */}
+            {/* Owner information with profile photo */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mr-3">
-                  {product.profiles?.avatar_url ? (
-                    <OptimizedImage
-                      src={product.profiles.avatar_url}
-                      alt={product.profiles.username}
-                      className="w-full h-full rounded-full"
-                      objectFit="cover"
-                    />
-                  ) : (
-                    <span className="text-gray-500 font-medium">
-                      {product.profiles?.username?.charAt(0) || 'U'}
-                    </span>
-                  )}
-                </div>
+                <Avatar className="w-12 h-12 mr-3">
+                  <AvatarImage 
+                    src={product.profiles?.avatar_url} 
+                    alt={product.profiles?.username || 'Owner'} 
+                  />
+                  <AvatarFallback className="bg-blue-100 text-blue-500">
+                    {(product.profiles?.username || 'U').charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <p className="font-medium">{product.profiles?.username}</p>
-                  <p className="text-sm text-gray-500">Owner</p>
+                  <p className="text-sm text-gray-500">
+                    Member since {product.profiles?.created_at 
+                      ? new Date(product.profiles.created_at).toLocaleDateString() 
+                      : 'Unknown'}
+                  </p>
                 </div>
               </div>
             </div>
