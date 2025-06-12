@@ -18,7 +18,7 @@ const InFeedAd: React.FC<InFeedAdProps> = ({
   className = '',
   style = {}
 }) => {
-  const adRef = useRef<HTMLDivElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
     try {

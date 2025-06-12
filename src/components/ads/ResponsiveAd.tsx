@@ -20,7 +20,7 @@ const ResponsiveAd: React.FC<ResponsiveAdProps> = ({
   style = {},
   variant = 'bordered'
 }) => {
-  const adRef = useRef<HTMLDivElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
     try {

@@ -18,7 +18,7 @@ const RectangleAd: React.FC<RectangleAdProps> = ({
   className = '',
   style = {}
 }) => {
-  const adRef = useRef<HTMLDivElement>(null);
+  const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
     try {
