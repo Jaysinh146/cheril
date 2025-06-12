@@ -49,6 +49,7 @@ const Profile = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -113,6 +114,108 @@ const Profile = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+
+    try {
+      setIsUploadingImage(true);
+      
+      // Delete old image if exists
+      if (profileData.avatar_url) {
+        const oldPath = profileData.avatar_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('profile-images')
+            .remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new image
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(filePath);
+
+      const newAvatarUrl = urlData.publicUrl;
+
+      // Update profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          ...profileData,
+          avatar_url: newAvatarUrl,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (updateError) throw updateError;
+
+      setProfileData({ ...profileData, avatar_url: newAvatarUrl });
+      setEditData({ ...editData, avatar_url: newAvatarUrl });
+
+      toast({
+        title: 'Success',
+        description: 'Profile picture updated successfully',
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload profile picture',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    if (!user || !profileData.avatar_url) return;
+
+    try {
+      // Delete from storage
+      const oldPath = profileData.avatar_url.split('/').pop();
+      if (oldPath) {
+        await supabase.storage
+          .from('profile-images')
+          .remove([`${user.id}/${oldPath}`]);
+      }
+
+      // Update profile
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setProfileData({ ...profileData, avatar_url: undefined });
+      setEditData({ ...editData, avatar_url: undefined });
+
+      toast({
+        title: 'Success',
+        description: 'Profile picture removed successfully',
+      });
+    } catch (error) {
+      console.error('Error removing profile picture:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove profile picture',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -229,17 +332,17 @@ const Profile = () => {
             <CardHeader className="pb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="relative flex flex-col items-center">
-                  {profileData.avatar_url ? (
-                    <img
-                      src={profileData.avatar_url}
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border mb-2"
+                  <Avatar className="w-24 h-24 mb-2">
+                    <AvatarImage 
+                      src={profileData.avatar_url} 
+                      alt="Profile" 
+                      className="object-cover"
                     />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-2 text-3xl font-bold text-gray-500">
+                    <AvatarFallback className="text-3xl font-bold">
                       {profileData.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                    </div>
-                  )}
+                    </AvatarFallback>
+                  </Avatar>
+                  
                   <div className="flex gap-2">
                     <Button
                       size="icon"
@@ -247,6 +350,7 @@ const Profile = () => {
                       className="h-10 w-10 rounded-full p-0 flex items-center justify-center"
                       onClick={() => document.getElementById('profile-photo-upload')?.click()}
                       title={profileData.avatar_url ? 'Replace Photo' : 'Add Photo'}
+                      disabled={isUploadingImage}
                     >
                       <Camera className="w-5 h-5" />
                     </Button>
@@ -255,12 +359,9 @@ const Profile = () => {
                         size="icon"
                         variant="destructive"
                         className="h-10 w-10 rounded-full p-0 flex items-center justify-center"
-                        onClick={async () => {
-                          setEditData({ ...editData, avatar_url: '' });
-                          setProfileData({ ...profileData, avatar_url: '' });
-                          await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
-                        }}
+                        onClick={handleRemoveProfilePicture}
                         title="Remove Photo"
+                        disabled={isUploadingImage}
                       >
                         <Trash2 className="w-5 h-5" />
                       </Button>
@@ -271,17 +372,9 @@ const Profile = () => {
                     accept="image/*"
                     id="profile-photo-upload"
                     style={{ display: 'none' }}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (!file || !user) return;
-                      const filePath = `${user.id}/${Date.now()}_${file.name}`;
-                      const { data, error } = await supabase.storage.from('profile-picture').upload(filePath, file, { upsert: true });
-                      if (!error) {
-                        const { data: publicUrlData } = supabase.storage.from('profile-picture').getPublicUrl(filePath);
-                        setEditData({ ...editData, avatar_url: publicUrlData.publicUrl });
-                        setProfileData({ ...profileData, avatar_url: publicUrlData.publicUrl });
-                        await supabase.from('profiles').update({ avatar_url: publicUrlData.publicUrl }).eq('id', user.id);
-                      }
+                      if (file) handleImageUpload(file);
                     }}
                   />
                 </div>

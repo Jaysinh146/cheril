@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ProductPageRedesigned from '@/components/product/ProductPageRedesigned';
+import ProductRating from '@/components/product/ProductRating';
 import ReviewsSection from '@/components/product/ReviewsSection';
 import RatingStars from '@/components/product/RatingStars';
 import { useProduct } from '@/hooks/useProduct';
@@ -139,6 +141,17 @@ const Product = () => {
               <span className="text-gray-900 font-medium">{product.title}</span>
             </span>
           </div>
+
+          {/* Product Rating Display */}
+          {ratingData && ratingData.count > 0 && (
+            <div className="mb-4">
+              <ProductRating 
+                averageRating={ratingData.average_rating} 
+                reviewCount={ratingData.count}
+                size="lg"
+              />
+            </div>
+          )}
           
           <ErrorBoundary>
             <ProductPageRedesigned

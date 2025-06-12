@@ -102,7 +102,7 @@ export const useProduct = (id: string | undefined) => {
     enabled: !!id,
   });
 
-  // Fetch rating data
+  // Fetch rating data using reviews table
   const {
     data: ratingData,
     isLoading: isRatingLoading,
@@ -114,29 +114,34 @@ export const useProduct = (id: string | undefined) => {
       if (!id) throw new Error('No item ID provided');
 
       try {
-        // First try to use the RPC function if it exists
-        const { data, error } = await (supabase.rpc as any)('get_average_rating_for_item', {
-          item_id: id,
-        });
+        // Fetch reviews for this item and calculate average
+        const { data: reviews, error } = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('item_id', id);
         
         if (error) {
-          console.warn('RPC function error:', error.message);
-          // If the function doesn't exist, return a default value
-          if (error.code === '404' || error.message.includes('not found')) {
-            return { average_rating: 0, count: 0 } as AverageRatingResponse;
-          }
-          throw error;
+          console.warn('Error fetching reviews:', error.message);
+          return { average_rating: 0, count: 0 } as AverageRatingResponse;
         }
         
-        return data as AverageRatingResponse;
+        if (!reviews || reviews.length === 0) {
+          return { average_rating: 0, count: 0 } as AverageRatingResponse;
+        }
+
+        const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+        const averageRating = totalRating / reviews.length;
+        
+        return { 
+          average_rating: Number(averageRating.toFixed(1)), 
+          count: reviews.length 
+        } as AverageRatingResponse;
       } catch (err) {
         console.error('Failed to get ratings:', err);
-        // Fallback to a default value
         return { average_rating: 0, count: 0 } as AverageRatingResponse;
       }
     },
     enabled: !!id,
-    // Don't retry too many times if the function doesn't exist
     retry: 1,
   });
 

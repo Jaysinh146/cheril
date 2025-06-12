@@ -273,6 +273,42 @@ export type Database = {
           },
         ]
       }
+      views: {
+        Row: {
+          id: string
+          item_id: string | null
+          viewed_at: string | null
+          viewer_id: string | null
+        }
+        Insert: {
+          id?: string
+          item_id?: string | null
+          viewed_at?: string | null
+          viewer_id?: string | null
+        }
+        Update: {
+          id?: string
+          item_id?: string | null
+          viewed_at?: string | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "views_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wishlists: {
         Row: {
           created_at: string
@@ -327,11 +363,8 @@ export type Database = {
         }[]
       }
       get_average_rating_for_item: {
-        Args: { item_id: string }
-        Returns: {
-          average_rating: number
-          count: number
-        }[]
+        Args: { item_id: number } | { item_id: string }
+        Returns: number
       }
     }
     Enums: {

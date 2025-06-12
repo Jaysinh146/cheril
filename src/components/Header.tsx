@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, Menu, Search, User, X, Bookmark, LogOut } from 'lucide-react';
 import { Link, useNavigate, NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,9 +56,18 @@ const Header = () => {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span>{user.user_metadata?.full_name || user.email}</span>
+                  <Button variant="ghost" className="flex items-center space-x-2 hover:bg-gray-100">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage 
+                        src={user.user_metadata?.avatar_url} 
+                        alt="Profile"
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="text-sm">
+                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:block">{user.user_metadata?.full_name || user.email}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -134,10 +145,28 @@ const Header = () => {
               
               <div className="pt-4 border-t border-gray-200">
                 {user ? (
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage 
+                        src={user.user_metadata?.avatar_url} 
+                        alt="Profile"
+                        className="object-cover"
+                      />
+                      <AvatarFallback>
+                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {user.user_metadata?.full_name || user.email}
+                      </p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
+                ) : null}
+                
+                {user ? (
                   <div>
-                    <p className="text-sm text-gray-600">
-                      {user.user_metadata?.full_name || user.email}
-                    </p>
                     <Button 
                       variant="ghost" 
                       className="w-full justify-start text-left"
