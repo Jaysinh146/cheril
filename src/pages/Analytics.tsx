@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Header from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,14 +23,14 @@ const Analytics = () => {
         .from('items')
         .select('id', { count: 'exact', head: true })
         .eq('owner_id', user.id);
-      setTotalListings(listingsCount ?? '--');
+      setTotalListings(listingsCount?.toString() ?? '--');
 
       // Fetch total rentals
       const { count: rentalsCount } = await supabase
         .from('bookings')
         .select('id', { count: 'exact', head: true })
         .eq('renter_id', user.id);
-      setTotalRentals(rentalsCount ?? '--');
+      setTotalRentals(rentalsCount?.toString() ?? '--');
 
       // Fetch all item ids and names owned by user
       const { data: items } = await supabase
@@ -47,7 +48,7 @@ const Analytics = () => {
         .from('views')
         .select('id', { count: 'exact', head: true })
         .in('item_id', itemIds);
-      setTotalViews(viewsCount ?? '--');
+      setTotalViews(viewsCount?.toString() ?? '--');
 
       // Fetch views per product
       if (itemIds.length > 0) {
@@ -135,4 +136,4 @@ const Analytics = () => {
   );
 };
 
-export default Analytics; 
+export default Analytics;
