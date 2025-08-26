@@ -57,7 +57,38 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Banner Ad after Hero */}
+      {/* Author Section */}
+      <section className="relative py-16 px-6 bg-gradient-to-r from-[#f8f9fa] to-[#e8f4f8] overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{ 
+            backgroundImage: `radial-gradient(circle at 20% 80%, #F7996E 0%, transparent 50%), radial-gradient(circle at 80% 20%, #F7996E 0%, transparent 50%)`,
+          }}></div>
+        </div>
+        
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <div className="relative">
+            <p className="text-2xl md:text-3xl font-serif italic text-gray-700 leading-relaxed mb-6 font-light">
+              "This project is created by{' '}
+              <span className="text-[#F7996E] font-semibold">Jaysinh Patankar</span>{' '}
+              as a part of their full stack development journey and a curiosity to build. 
+              Cheril will always be{' '}
+              <span className="text-[#F7996E] font-semibold">free for all users</span>. 
+              The purpose of this project is to democratize rental platforms and provide everyone an opportunity to{' '}
+              <span className="text-[#F7996E] font-semibold">maximize their earnings</span>."
+            </p>
+            {/* Decorative elements */}
+            <div className="absolute -top-4 -left-4 text-[#F7996E] opacity-30 text-6xl font-serif">"</div>
+            <div className="absolute -bottom-4 -right-4 text-[#F7996E] opacity-30 text-6xl font-serif">"</div>
+          </div>
+          
+          <div className="flex justify-center mt-8">
+            <div className="w-20 h-1 bg-gradient-to-r from-transparent via-[#F7996E] to-transparent rounded-full"></div>
+          </div>
+        </div>
+      </section>
+
+      {/* Banner Ad after Author Section */}
       <BannerAd adSlot="1234567890" className="max-w-6xl" />
 
       {/* Featured Categories */}

@@ -244,11 +244,11 @@ const HelpCenter = () => {
             <p className="text-gray-600 mb-8 max-w-2xl mx-auto font-poppins">
               Our support team is here to help you with any questions or issues you might have.
             </p>
-            <Link to="/help-center/contact">
+            <a href="mailto:patankararyan7@gmail.com">
               <Button className="bg-[#F7996E] hover:bg-[#e68a60] px-8 py-6 text-base font-poppins">
                 Contact Support
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
