@@ -49,9 +49,11 @@ const Profile = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [totalRentals, setTotalRentals] = useState('--');
   const [userRentals, setUserRentals] = useState<number>(0);
   const [showAddRental, setShowAddRental] = useState(false);
+  const [rentalAmount, setRentalAmount] = useState('');
 
   useEffect(() => {
     if (!user) {
