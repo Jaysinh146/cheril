@@ -58,7 +58,7 @@ const Index = () => {
       </section>
 
       {/* Author Section */}
-      <section className="relative py-16 px-6 bg-gradient-to-r from-[#f8f9fa] to-[#e8f4f8] overflow-hidden">
+      <section className="relative py-12 px-6 bg-gradient-to-r from-[#f8f9fa] to-[#e8f4f8] overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ 
@@ -66,9 +66,9 @@ const Index = () => {
           }}></div>
         </div>
         
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
           <div className="relative">
-            <p className="text-2xl md:text-3xl font-serif italic text-gray-700 leading-relaxed mb-6 font-light">
+            <p className="text-lg md:text-xl font-serif italic text-gray-600 leading-relaxed mb-4 font-light">
               "This project is created by{' '}
               <span className="text-[#F7996E] font-semibold">Jaysinh Patankar</span>{' '}
               as a part of their full stack development journey and a curiosity to build. 
@@ -78,12 +78,17 @@ const Index = () => {
               <span className="text-[#F7996E] font-semibold">maximize their earnings</span>."
             </p>
             {/* Decorative elements */}
-            <div className="absolute -top-4 -left-4 text-[#F7996E] opacity-30 text-6xl font-serif">"</div>
-            <div className="absolute -bottom-4 -right-4 text-[#F7996E] opacity-30 text-6xl font-serif">"</div>
+            <div className="absolute -top-3 -left-3 text-[#F7996E] opacity-30 text-4xl font-serif">"</div>
+            <div className="absolute -bottom-3 -right-3 text-[#F7996E] opacity-30 text-4xl font-serif">"</div>
           </div>
           
+          <div className="flex justify-center mt-6">
+            <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-[#F7996E] to-transparent rounded-full"></div>
+          </div>
+          
+          {/* Scroll Arrow */}
           <div className="flex justify-center mt-8">
-            <div className="w-20 h-1 bg-gradient-to-r from-transparent via-[#F7996E] to-transparent rounded-full"></div>
+            <ArrowDown className="w-6 h-6 text-[#F7996E] animate-bounce" />
           </div>
         </div>
       </section>

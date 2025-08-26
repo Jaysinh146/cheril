@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProfileItemCard from '@/components/ProfileItemCard';
-import { Edit, Camera, MapPin, Phone, MessageSquare, Trash2 } from 'lucide-react';
+import { Edit, Camera, MapPin, Phone, MessageSquare, Trash2, Plus } from 'lucide-react';
 import Analytics from './Analytics';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
@@ -49,7 +49,9 @@ const Profile = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [totalRentals, setTotalRentals] = useState('--');
+  const [userRentals, setUserRentals] = useState<number>(0);
+  const [showAddRental, setShowAddRental] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -379,11 +381,27 @@ const Profile = () => {
                   />
                 </div>
                 
-                <div className="flex-1">
+                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-gray-900">
                     {profileData.full_name || 'Your Name'}
                   </h1>
                   <p className="text-gray-600">{user.email}</p>
+                  
+                  {/* Rental Counter */}
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="bg-gradient-to-r from-[#F7996E] to-[#e8895f] px-4 py-2 rounded-lg text-white">
+                      <span className="text-lg font-bold">{userRentals}</span>
+                      <span className="text-sm ml-1">Total Rentals</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowAddRental(true)}
+                      className="h-8 w-8 rounded-full p-0"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                   
                   <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
                     {profileData.phone && (
