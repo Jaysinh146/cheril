@@ -16,6 +16,8 @@ const Analytics = () => {
   const [totalViews, setTotalViews] = useState('--');
   const [viewsPerProduct, setViewsPerProduct] = useState([]);
   const [viewsOverTime, setViewsOverTime] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -70,21 +72,34 @@ const Analytics = () => {
               views: productViews[id] || 0,
             }))
           );
-          // Views over time (by day)
+          // Views over time (by day) with better formatting
           const viewsByDay = {};
+          const years = new Set<string>();
           viewsData.forEach((v) => {
-            const day = v.viewed_at.slice(0, 10);
-            if (!viewsByDay[day]) viewsByDay[day] = 0;
-            viewsByDay[day]++;
+            const date = new Date(v.viewed_at);
+            const year = date.getFullYear().toString();
+            years.add(year);
+            
+            if (year === selectedYear) {
+              const day = v.viewed_at.slice(0, 10);
+              if (!viewsByDay[day]) viewsByDay[day] = 0;
+              viewsByDay[day]++;
+            }
           });
+          
+          setAvailableYears(Array.from(years).sort().reverse());
           setViewsOverTime(
-            Object.entries(viewsByDay).map(([date, count]) => ({ date, views: count }))
+            Object.entries(viewsByDay).map(([date, count]) => ({ 
+              date, 
+              views: count,
+              formattedDate: format(new Date(date), 'd MMM')
+            }))
           );
         }
       }
     };
     fetchAnalytics();
-  }, [user]);
+  }, [user, selectedYear]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f8fafc] to-white flex flex-col">
@@ -120,13 +135,34 @@ const Analytics = () => {
         </Card>
         {/* Animated Line Chart: Views Over Time */}
         <Card className="mt-10 p-6">
-          <h2 className="text-xl font-bold mb-4">Views Over Time</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Views Over Time</h2>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={year}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={viewsOverTime}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
+              <XAxis dataKey="formattedDate" />
               <YAxis allowDecimals={false} />
-              <Tooltip />
+              <Tooltip 
+                labelFormatter={(value, payload) => {
+                  if (payload && payload.length > 0) {
+                    return format(new Date(payload[0].payload.date), 'd MMMM yyyy');
+                  }
+                  return value;
+                }}
+              />
               <Legend />
               <Line type="monotone" dataKey="views" stroke="#F7996E" strokeWidth={3} dot={false} isAnimationActive={true} />
             </LineChart>

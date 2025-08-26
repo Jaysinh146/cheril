@@ -62,6 +62,7 @@ const Profile = () => {
     }
     fetchProfileData();
     fetchUserItems();
+    fetchUserRentals();
   }, [user, navigate]);
 
   const fetchProfileData = async () => {
@@ -87,6 +88,55 @@ const Profile = () => {
       toast({
         title: 'Error',
         description: 'Failed to load profile data',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const fetchUserRentals = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_rentals')
+        .select('amount')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      const total = data?.reduce((sum, rental) => sum + parseFloat(rental.amount.toString()), 0) || 0;
+      setUserRentals(total);
+    } catch (error) {
+      console.error('Error fetching user rentals:', error);
+    }
+  };
+
+  const handleAddRental = async () => {
+    if (!user || !rentalAmount) return;
+
+    try {
+      const { error } = await supabase
+        .from('user_rentals')
+        .insert({
+          user_id: user.id,
+          amount: parseFloat(rentalAmount),
+          description: 'Manual rental entry'
+        });
+
+      if (error) throw error;
+
+      await fetchUserRentals();
+      setRentalAmount('');
+      setShowAddRental(false);
+      toast({
+        title: 'Success',
+        description: 'Rental added successfully',
+      });
+    } catch (error) {
+      console.error('Error adding rental:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add rental',
         variant: 'destructive',
       });
     }
@@ -563,6 +613,32 @@ const Profile = () => {
       </div>
 
       <Footer />
+
+      {/* Add Rental Dialog */}
+      <Dialog open={showAddRental} onOpenChange={setShowAddRental}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Rental Earnings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rental_amount">Amount ($)</Label>
+              <Input
+                id="rental_amount"
+                type="number"
+                step="0.01"
+                value={rentalAmount}
+                onChange={(e) => setRentalAmount(e.target.value)}
+                placeholder="Enter rental amount"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddRental(false)}>Cancel</Button>
+            <Button onClick={handleAddRental} disabled={!rentalAmount}>Add Rental</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog for delete confirmation */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
